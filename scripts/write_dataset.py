@@ -1,94 +1,99 @@
-from collections import defaultdict
 import numpy as np
 import pandas as pd
 from pathlib import Path
+import time as t
+import argparse
 import os
 
+import h5py
 import desispec
 from desispec.spectra import Spectra
 from desispec.io import read_spectra
 from astropy.io import fits
+from desitarget.targets import desi_mask
 
 import logging
-logging.getLogger('desispec').setLevel(logging.WARNING)
+# logging.getLogger('desispec').setLevel(logging.WARNING)
 
 
-def check_path(path):
-    path = Path(path)
-    path.mkdir(parents=True, exist_ok=True)
-
+def check_path(path='../data'):
+    if not os.path.exists(path):
+        os.makedirs(path)
 
 def get_path(data_path):
     tiles_ids = os.listdir(data_path)
     nights = [os.listdir(os.path.join(data_path, tiles_ids[i]))[0] for i in range(len(tiles_ids))]
     return tiles_ids, nights
 
+def get_bitvals():
+    categories = np.array(list(desi_mask.names()))
+    bitvals = np.array([desi_mask[name] for name in categories])
+    return categories, bitvals
 
-def create_csv_dataset(data_path, tiles_ids, nights, output_csv_flux, output_csv_wave):
-    rows_flux, rows_wave = [], []
+def classify_targets(ids):
+    categories, masks = get_bitvals()
+    bool_matrix = (ids[:, None] & masks[None, :]) != 0
+    types = [' '.join(categories[row]) for row in bool_matrix]
+    return np.array(types)
 
-    for tile, night in zip(tiles_ids, nights):
-        folder = os.path.join(data_path, str(tile), str(night))
+def write_data(tiles_id, nights, data_path, output='sample.h5'):
+    with open('./logs/log.csv', "a") as log:
+        log.write('tile,night,petal,n_targets,time\n')
 
-        if not os.path.isdir(folder):
-            print(f'Foldes {folder} does not exist\n')
-            continue
-        petal_files = [f for f in os.listdir(folder) if f.startswith('coadd-')]
+    with h5py.File(f'../data/{output}', 'w') as f:
+        for i, night in enumerate(nights):
+            tile_dir = os.path.join(data_path, tiles_id[i], night)
+            tiles = [fname for fname in os.listdir(tile_dir) if fname.startswith('coadd-')]
 
-        if not petal_files:
-            print(f'No COADD file in {folder}\n')
-            continue
+            night_group = f.create_group(night)
+            tile_group = night_group.create_group(tiles_id[i])
 
-        for petal in petal_files:
-            file_path = os.path.join(folder, petal)
-            try:
-                sp = desispec.io.read_spectra(file_path)
-            except Exception as e:
-                print(f'Exception reading {file_path}: {e}\n')
-                continue
-            fibermap = sp.fibermap.to_pandas()
-            mask = (fibermap['COADD_FIBERSTATUS'] == 0) & (fibermap['DESI_TARGET'] != 0)
-            valid_indices = np.where(mask)[0]
-            if valid_indices.size == 0:
-                continue
+            for j, petal in enumerate(tiles):
+                tile_t = t.time()
+                print(f'Processing {tiles_id[i]} {night} {j}')
 
-            flux_b = sp.flux['b']
-            flux_r = sp.flux['r']
-            flux_z = sp.flux['z']
-            flux_brz = [np.concatenate([b, r, z]) for b, r, z in zip(flux_b, flux_r, flux_z)]
-            for pos in valid_indices:
-                target_info = fibermap.iloc[pos]
-                rows_flux.append({'TARGETID': target_info.get('TARGETID', None),
-                                  'TILEID': target_info.get('TILEID', tile),
-                                  'PETAL_LOC': target_info.get('PETAL_LOC', None),
-                                  'FLUX_B': flux_b[pos], 'FLUX_R': flux_r[pos],
-                                  'FLUX_Z': flux_z[pos], 'FLUX_BRZ': flux_brz[pos]})
+                petal_group = tile_group.create_group(petal.split('-')[1])
+                petal_path = os.path.join(data_path, tiles_id[i], night, petal)
 
-            wave_b, wave_r, wave_z = sp.wave['b'], sp.wave['r'], sp.wave['z']
-            wave_brz = np.concatenate([wave_b, wave_r, wave_z])
-            rows_wave.append({'TILEID': tile, 'NIGHT': night,
-                              'PETAL_FILE': petal, 'WAVE_B': wave_b,
-                              'WAVE_R': wave_r, 'WAVE_Z': wave_z,
-                              'WAVE_BRZ': wave_brz})
+                coadd_obj = desispec.io.read_spectra(petal_path)
+                ffile = fits.open(petal_path)['FIBERMAP'].data
 
-    df_flux, df_wave = pd.DataFrame(rows_flux), pd.DataFrame(rows_wave)
-    df_flux.to_csv(output_csv_flux, index=False); df_wave.to_csv(output_csv_wave, index=False)
-    print(f"Flux data saved in {output_csv_flux}")
-    print(f"Wave data saved in {output_csv_wave}")
-    return df_flux, df_wave
+                mask = np.logical_and(ffile['COADD_FIBERSTATUS'] == 0, ffile['DESI_TARGET'] != 0)
+                coadd_spec, fits_filt = coadd_obj[mask], ffile[mask]
+
+                target_ids = fits_filt['TARGETID']
+                petal_group.create_dataset('target_id', data=target_ids, compression='gzip')
+                types = classify_targets(target_ids)
+
+                types_array = np.array(types, dtype=h5py.string_dtype(encoding='utf-8'))
+                petal_group.create_dataset('target_type', data=types_array,
+                                           dtype=h5py.string_dtype(encoding='utf-8'), compression='gzip')
+
+                fluxes, waves = coadd_spec.flux, coadd_spec.wave
+                flux_group, wave_group = petal_group.create_group('flux'), petal_group.create_group('wave')
+
+                for band in ['b', 'r', 'z']:
+                    flux_group.create_dataset(band, data=fluxes[band], compression='gzip')
+                    wave_group.create_dataset(band, data=waves[band], compression='gzip')
+
+                wave_brz = np.concatenate([coadd_spec.wave['b'], coadd_spec.wave['r'], coadd_spec.wave['z']])
+                flux_brz = np.concatenate([coadd_spec.flux['b'], coadd_spec.flux['r'], coadd_spec.flux['z']], axis=1)
+                flux_group.create_dataset('brz', data=flux_brz, compression='gzip')
+                wave_group.create_dataset('brz', data=wave_brz, compression='gzip')
+
+                with open('./logs/log.csv', "a") as log:
+                    log.write(f'{tiles_id[i]},{night},{j},{target_ids.shape[0]},{t.time()-tile_t}\n')
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_path', required=True, help='Root path to DESI data')
-    parser.add_argument('--output_csv_flux', required=True, help='Output CSV file for flux data')
-    parser.add_argument('--output_csv_wave', required=True, help='Output CSV file for wave data')
+    parser.add_argument('--data_path', required=True, help='Root path to data')
+    parser.add_argument('--output', required=False, default='sample.h5', help='Output file name')
     args = parser.parse_args()
 
-    check_path('./data')
+    check_path('../data')
     tiles_ids, nights = get_path(args.data_path)
-    create_csv_dataset(args.data_path, tiles_ids, nights, args.output_csv_flux, args.output_csv_wave)
-
+    write_data(tiles_ids, nights, args.data_path, args.output)
 
 if __name__ == '__main__':
     main()
