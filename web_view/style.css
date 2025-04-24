@@ -1,0 +1,72 @@
+.body {
+    /* font-family: Arial, sans-serif; */
+    font-family: Lucida Console, monospace;
+}
+
+.navbar{
+    font-family: Lucida Console, monospace;
+    font-weight: bold;
+}
+.main-subtitle {
+    font-size: 1.5em;
+    text-align: center;
+    margin-top: 20px;
+    font-family: Lucida Console, monospace;
+}
+
+.main-title {
+    font-size: 2em;
+    text-align: center;
+    margin-top: 50px;
+    font-family: Lucida Console, monospace;
+    font-weight: bold;
+}
+
+.main-content {
+    /* display: flex; */
+    text-align: center;
+}
+
+.tiles {
+    display: flex;
+}
+
+.left-pannel .right-pannel{
+    text-align: center;
+}
+
+.img-tile {
+    width: 100%;
+    height: auto;
+}
+
+.main-card {
+    margin-top: 5%;
+    /* display: flex; */
+    justify-content: center;
+    align-items: center;
+}
+
+.card-img-top{
+    width: 50%;
+}
+
+.main-spectra{
+    margin-top: -5%;
+    justify-content: center;
+    align-items: center;
+}
+
+.spectra-imgs{
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+}
+
+.spectra-img {
+    width: 49%;
+    height: auto;
+    margin-bottom: 5%;
+    justify-content: center;
+    align-items: center;
+}
