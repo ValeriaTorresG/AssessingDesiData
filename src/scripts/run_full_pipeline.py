@@ -6,7 +6,7 @@ def main():
     parser.add_argument('--night', required=True)
     parser.add_argument('--base-dir', default='./desi_data')
     parser.add_argument('--processed-dir', default='./data/processed')
-    parser.add_argument('--band', default='brz', choices=['b','b','z','brz'])
+    parser.add_argument('--band', default='brz', choices=['b','r','z','brz'])
     parser.add_argument('--normalize', action='store_true', default=False)
     parser.add_argument('--n_neighbors', type=int, default=45)
     parser.add_argument('--min_dist', type=float, default=1.0)

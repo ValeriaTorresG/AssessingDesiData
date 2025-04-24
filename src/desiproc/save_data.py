@@ -140,8 +140,7 @@ class SpectraPipeline:
                                       compression='gzip', compression_opts=4,
                                       chunks=w.shape)
 
-                    n_wave, n_fib = fl.shape
-                    chunk_shape = (n_wave, 1)
+                    chunk_shape = (fl.shape[0], 1)
                     gb.create_dataset('flux', data=fl,
                                       compression='gzip', compression_opts=4,
                                       chunks=chunk_shape)
