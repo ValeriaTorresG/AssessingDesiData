@@ -2,9 +2,10 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from pathlib import Path
-import argparse
+import argparse, os
 
 import matplotlib.pyplot as plt
+os.environ['PATH'] = '/Library/TeX/texbin:' + os.environ['PATH']
 plt.rcParams['text.usetex'] = True
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Times New Roman', 'Palatino', 'Computer Modern Roman']
@@ -62,25 +63,24 @@ def plot_umap(df, tile_id, night, out_dir):
     ax.legend()
     ax.set_xticks([]); ax.set_yticks([])
     plt.axis('off')
-    title = (
-             f'\n{len(df)} spectra, {df.meta_n_clusters} clusters\n'
+    title = (f'\n{len(df)} spectra, {df.meta_n_clusters} clusters\n'
              fr'{o.sum()} outliers, {o.sum()/len(df)*100:.2f}\%')
 
     fig.suptitle(f'{night} - {tile_id}\n', fontsize=21, weight='bold',
                  y=1.05)
     ax.set_title(title, y=1.05, fontsize=18)
     fn = out_dir / f'umap_{tile_id}_{night}.png'
-    plt.savefig(fn, dpi=360, bbox_inches='tight')
+    plt.savefig(fn, dpi=200, bbox_inches='tight')
     plt.close()
-    print(f'>>> Saved plot to {fn}')
+    # print(f'>>> Saved plot to {fn}')
 
-def main():
+def main(argv=None):
     p = argparse.ArgumentParser()
     p.add_argument('npz', help='npz file')
     p.add_argument('--tile', required=True)
     p.add_argument('--night', required=True)
-    p.add_argument('--outdir', default='../../data/plots/umap')
-    args = p.parse_args()
+    p.add_argument('--outdir', default='../data/plots/umap')
+    args = p.parse_args(argv)
 
     df = load_data(args.npz)
     plot_umap(df, args.tile, args.night, args.outdir)

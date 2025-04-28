@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.join(proj_root, 'src'))
 from scripts.process_tile import main as process_tile_main
 from scripts.run_model import main as run_model_main
 from scripts.plot_umap import main as plot_umap_main
+from scripts.plot_spectra import main as plot_spectra_main
 
 def main(argv=None):
     parser = argparse.ArgumentParser()
@@ -27,7 +28,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     start = time.time()
-    # Path(args.processed_dir).mkdir(parents=True, exist_ok=True)
+    Path(args.processed_dir).mkdir(parents=True, exist_ok=True)
 
     # 1. process all petals from tile
     process_tile_main(['--night',    args.night,
@@ -56,6 +57,14 @@ def main(argv=None):
                     '--night', args.night,
                     '--tile', args.tile,
                     ])
+
+    #4. plot spectra
+    plot_spectra_main([str(Path(args.processed_dir)/f'umap/umap_{args.night}_{args.tile}.npz'),
+                        str(Path(args.processed_dir)),
+                        '--night', args.night,
+                        '--tile', args.tile,
+                        # '--plot-path', str(Path(args.processed_dir)/'plots/spectra')
+                        ])
 
     print(f"{args.night},{args.tile},{time.time()-start:.1f}")
 
