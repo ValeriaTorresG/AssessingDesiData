@@ -20,6 +20,9 @@ class SpectraPipeline:
     z_rr: np.ndarray = field(default_factory=lambda: np.array([]), init=False)
     zerr_rr: np.ndarray = field(default_factory=lambda: np.array([]), init=False)
 
+    desi_types: np.ndarray = field(default_factory=lambda: np.array([], dtype=str), init=False)
+    types: np.ndarray = field(default_factory=lambda: np.array([], dtype=str), init=False)
+
     def write_data(self):
         """
         Reads coadd and redrock files, filters objects, extracts spectra,
@@ -140,7 +143,8 @@ class SpectraPipeline:
                                       compression='gzip', compression_opts=4,
                                       chunks=w.shape)
 
-                    chunk_shape = (fl.shape[0], 1)
+                    # chunk_shape = (fl.shape[0], 1) #optimizes for column access
+                    chunk_shape = (1, w.shape[0]) #optimizes for row access
                     gb.create_dataset('flux', data=fl,
                                       compression='gzip', compression_opts=4,
                                       chunks=chunk_shape)

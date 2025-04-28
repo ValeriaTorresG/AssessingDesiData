@@ -1,32 +1,29 @@
-import argparse, time, sys, os
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
+from concurrent.futures import ProcessPoolExecutor, as_completed  #maybe better than ThreadPoolExecutor in this case
+from pathlib import Path
+import argparse, time
 from desiproc.save_data import SpectraPipeline
 
-def process_petal(petal, tile, night, base_dir, out_dir):
-    fn_coadd = f'{base_dir}/{tile}/{night}/coadd-{petal}-{tile}-thru{night}.fits'
-    fn_rr    = f'{base_dir}/{tile}/{night}/redrock-{petal}-{tile}-thru{night}.fits'
-    pipeline = SpectraPipeline(fn_coadd, fn_rr, data_path=out_dir)
-    pipeline.write_data()
-    return petal
+def process_petal(petal: int, args) -> None:
+    coadd = Path(args.base_dir)/args.tile/args.night/f"coadd-{petal}-{args.tile}-thru{args.night}.fits"
+    rr = Path(args.base_dir)/args.tile/args.night/f"redrock-{petal}-{args.tile}-thru{args.night}.fits"
+    SpectraPipeline(str(coadd), str(rr),  data_path=args.out_dir).write_data()
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--night',required=True, help='Night')
-    parser.add_argument('--tile', required=True, help='Tile ID')
-    parser.add_argument('--base-dir',default='./desi_data', help='Path of coadd/redrock')
-    parser.add_argument('--out-dir', default='./data/processed', help='Path for .h5 outputs')
-    parser.add_argument('--workers', type=int, default=10, help='Max concurrent threads')
-    args = parser.parse_args()
+    parser.add_argument('--night',    required=True)
+    parser.add_argument('--tile',     required=True)
+    parser.add_argument('--base-dir', required=True)
+    parser.add_argument('--out-dir',  required=True)
+    parser.add_argument('--workers',  type=int, default=10)
+    args = parser.parse_args(argv)
 
-    start_all = time.time()
-    with ThreadPoolExecutor(max_workers=args.workers) as exe:
-        futures = {exe.submit(process_petal, p, args.tile, args.night, args.base_dir,
-                              args.out_dir): p for p in range(10)}
+    # Path(args.out_dir).mkdir(parents=True, exist_ok=True)
+    start = time.time()
+    with ProcessPoolExecutor(max_workers=args.workers) as exe:
+        futures = [exe.submit(process_petal, petal, args) for petal in range(10)]
         for fut in as_completed(futures):
-            petal = futures[fut]
-    # print(f'>>> Tile processed in {time.time()-start_all:.2f} s')
-
-if __name__ == '__main__':
-    main()
+            try:
+                fut.result()
+            except Exception as e:
+                print(f"Error en pétalo: {e}")
+    # print(f">>> Tile {args.tile} done in {time.time()-start:.1f}s")

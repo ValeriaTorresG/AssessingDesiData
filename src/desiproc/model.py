@@ -23,7 +23,7 @@ class SpectraAnalyzer:
     labels: Optional[np.ndarray] = field(default=None, init=False)
     n_clusters:Optional[int] = field(default=None, init=False)
 
-    def build_matrix(self, normalize:bool=False):
+    def load_data(self, normalize:bool=False):
         """
         Build a matrix of spectra from HDF5 files using zero padding.
         """
@@ -36,6 +36,7 @@ class SpectraAnalyzer:
         """
         if self.flux is None:
             raise RuntimeError(">> No matrix")
+
         defaults = dict(n_neighbors=45, min_dist=1.0, n_components=2,
                         metric='cosine', n_jobs=-1)#,random_state=42) !n_jobs value 1 overridden to 1 by setting random_state
         if 'metric' in params:                      #cant use parallel and random_state at the same time
@@ -51,12 +52,13 @@ class SpectraAnalyzer:
         and connected components.
         """
         if self.embedding is None:
-            raise RuntimeError(">> No UMAP")
-        graph = radius_neighbors_graph(
-            self.embedding, radius=link_length,
-            mode='connectivity', include_self=True, n_jobs=-1)
-        self.n_clusters, self.labels = connected_components(
-            csgraph=graph, directed=False, return_labels=True)
+            raise RuntimeError(">> No embedding")
+        graph = radius_neighbors_graph(self.embedding, radius=link_length,
+                                       mode='connectivity', include_self=True,
+                                       n_jobs=-1)
+        self.n_clusters, self.labels = connected_components(csgraph=graph,
+                                                            directed=False,
+                                                            return_labels=True)
         return self.labels, self.n_clusters
 
     def get_outliers(self, min_cluster_size:int):

@@ -2,7 +2,7 @@ import os
 import glob
 import h5py
 import numpy as np
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple, Sequence, Optional
 from dataclasses import dataclass
 
 @dataclass
@@ -11,6 +11,7 @@ class Metadata:
     union_waves: Dict[str,np.ndarray]
     band_offsets: Dict[str,int]
     total_fib: int
+    waves_by_file: List[Dict[str, np.ndarray]]
 
 
 def list_hdf5_files(out_dir:str, night:str, tile:str):
@@ -31,36 +32,40 @@ def gather_metadata(files:List[str], bands:List[str]):
         - build the unique wavelength grid for each band
         - calculate column offsets for each band in the final matrix
     """
-    fib_counts = []
+    fib_counts, total_fib = [], 0
     waves_accum: Dict[str, List[np.ndarray]] = {b: [] for b in bands}
-    total_fib = 0
+    waves_by_file: List[Dict[str, np.ndarray]] = []
 
     for fn in files:
         with h5py.File(fn, 'r') as f:
             n = f['metadata/target_id'].shape[0]
             fib_counts.append(n)
             total_fib += n
+
+            file_waves: Dict[str, np.ndarray] = {}
             for b in bands:
-                waves_accum[b].append(f[f'spectra/{b}/wavelength'][:])
+                w = f[f'spectra/{b}/wavelength'][:]
+                waves_accum[b].append(w)
+                file_waves[b] = w
+            waves_by_file.append(file_waves)
 
     union_waves = {b: np.unique(np.concatenate(waves_accum[b])) for b in bands}
-    band_offsets = {}
-    offset = 0
+    band_offsets, offset = {}, 0
     for b in bands:
         band_offsets[b] = offset
         offset += union_waves[b].size
 
-    return Metadata(fib_counts, union_waves, band_offsets, total_fib)
+    return Metadata(fib_counts, union_waves, band_offsets, total_fib, waves_by_file)
 
 
-def allocate_matrices(md:Metadata, bands:List[str]):
+def allocate_matrices(md:Metadata, bands:Sequence[str]):
     """
     Reserve matrices for flux, ivar, z, zerr, and the wavelength vector.
     """
     total_cols = sum(md.union_waves[b].size for b in bands)
-    fp = np.zeros((md.total_fib, total_cols), dtype=float)
+    fp = np.zeros((md.total_fib, total_cols), dtype=np.float32)
     iv = np.zeros_like(fp)
-    z  = np.empty(md.total_fib,    dtype=float)
+    z  = np.empty(md.total_fib, dtype=np.float32)
     ze = np.empty_like(z)
     wg = np.concatenate([md.union_waves[b] for b in bands])
     return wg, fp, iv, z, ze
@@ -73,19 +78,20 @@ def fill_matrices(files:List[str], bands:List[str], md:Metadata, fp:np.ndarray,
     vectorized indexing.
     """
     row = 0
-    for fn, n in zip(files, md.fib_counts):
+    for i, (fn, n) in enumerate(zip(files, md.fib_counts)):
         with h5py.File(fn, 'r') as f:
-            # redrock
             z[row:row + n]  = f['metadata/redrock_z'][:]
             ze[row:row + n] = f['metadata/redrock_zerr'][:]
 
+            file_waves = md.waves_by_file[i]
             for b in bands:
-                w    = f[f'spectra/{b}/wavelength'][:]
+                w = file_waves[b]
                 flux = f[f'spectra/{b}/flux'][:]
                 ivar = f[f'spectra/{b}/ivar'][:]
 
                 idx = np.searchsorted(md.union_waves[b], w)
                 off = md.band_offsets[b]
+
                 dest_fp = fp[row:row + n, off:off + md.union_waves[b].size]
                 dest_iv = iv[row:row + n, off:off + md.union_waves[b].size]
 
@@ -105,9 +111,9 @@ def build_matrix(out_dir:str, night:str, tile:str, bands:Tuple[str, ...]):
         4. Fill matrices
     """
     files = list_hdf5_files(out_dir, night, tile)
-    md = gather_metadata(files, list(bands))
-    wg, fp, iv, z, ze = allocate_matrices(md, list(bands))
-    fill_matrices(files, list(bands), md, fp, iv, z, ze)
+    md = gather_metadata(files, bands)
+    wg, fp, iv, z, ze = allocate_matrices(md, bands)
+    fill_matrices(files, bands, md, fp, iv, z, ze)
     return wg, fp, iv, z, ze
 
 
