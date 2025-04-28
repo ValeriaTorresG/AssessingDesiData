@@ -81,7 +81,7 @@ def allocate_matrices(md:Metadata, bands:Sequence[str]):
     ze = np.empty_like(z)
     wg = np.concatenate([md.union_waves[b] for b in bands])
     ids = np.empty(md.total_fib, dtype=md.ids_by_file[0].dtype)
-    cat = np.empty(md.total_fib, dtype=str)
+    cat = np.empty(md.total_fib, dtype=object)
     petals= np.empty(md.total_fib, dtype=int)
     return wg, fp, iv, z, ze, ids, cat, petals
 

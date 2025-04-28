@@ -7,6 +7,7 @@ proj_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, o
 sys.path.insert(0, os.path.join(proj_root, 'src'))
 from scripts.process_tile import main as process_tile_main
 from scripts.run_model import main as run_model_main
+from scripts.plot_umap import main as plot_umap_main
 
 def main(argv=None):
     parser = argparse.ArgumentParser()
@@ -48,6 +49,12 @@ def main(argv=None):
                     '--n_components',     str(args.n_components),
                     '--link-length',      str(args.link_length),
                     '--min-cluster-size', str(args.min_cluster_size)
+                    ])
+
+    # 3. plot UMAP
+    plot_umap_main([str(Path(args.processed_dir)/f'umap/umap_{args.night}_{args.tile}.npz'),
+                    '--night', args.night,
+                    '--tile', args.tile,
                     ])
 
     print(f"{args.night},{args.tile},{time.time()-start:.1f}")
