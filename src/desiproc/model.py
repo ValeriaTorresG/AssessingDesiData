@@ -11,7 +11,7 @@ class SpectraAnalyzer:
     """
     Executes padding, UMAP embedding, FoF clustering and outlier detection.
     """
-    out_dir:str; night:str; tile:str; band:str='brz'; dtype:np.dtype=np.float32
+    out_dir:str; night:str; tile:str; band:str='brz'; dtype:np.dtype=np.float64
 
     wave_grid: Optional[np.ndarray] = field(default=None, init=False)
     flux: Optional[np.ndarray] = field(default=None, init=False)
@@ -21,14 +21,19 @@ class SpectraAnalyzer:
 
     embedding: Optional[np.ndarray] = field(default=None, init=False)
     labels: Optional[np.ndarray] = field(default=None, init=False)
+    ids: Optional[np.ndarray] = field(default=None, init=False)
+    cat: Optional[str] = field(default=None, init=False)
+    petals: Optional[np.ndarray] = field(default=None, init=False)
     n_clusters:Optional[int] = field(default=None, init=False)
 
     def load_data(self, normalize:bool=False):
         """
         Build a matrix of spectra from HDF5 files using zero padding.
         """
-        wg, fp, iv, z, ze = build_matrix(self.out_dir, self.night, self.tile, bands=self.band.upper())#, normalize=normalize)
+        wg, fp, iv, z, ze, ids, cat, pet = build_matrix(self.out_dir, self.night,
+                                                        self.tile, bands=self.band.upper())#, normalize=normalize)
         self.wave_grid, self.flux, self.ivar, self.z, self.zerr = wg, fp, iv, z, ze
+        self.ids, self.cat, self.petals = ids, cat, pet
 
     def compute_umap(self, **params):
         """
@@ -37,7 +42,7 @@ class SpectraAnalyzer:
         if self.flux is None:
             raise RuntimeError(">> No matrix")
 
-        defaults = dict(n_neighbors=45, min_dist=1.0, n_components=2,
+        defaults = dict(n_neighbors=100, min_dist=1.0, n_components=2,
                         metric='cosine', n_jobs=-1)#,random_state=42) !n_jobs value 1 overridden to 1 by setting random_state
         if 'metric' in params:                      #cant use parallel and random_state at the same time
             defaults['metric'] = params.pop('metric')

@@ -10,10 +10,10 @@ def main(argv=None):
     parser.add_argument('--tile',             required=True)
     parser.add_argument('--band',             default='brz', choices=['b','r','z','brz'])
     parser.add_argument('--normalize',        action='store_true')
-    parser.add_argument('--n_neighbors',      type=int, default=45)
+    parser.add_argument('--n_neighbors',      type=int, default=100)
     parser.add_argument('--min_dist',         type=float, default=1.0)
     parser.add_argument('--n_components',     type=int, default=2)
-    parser.add_argument('--link-length',      type=float, default=0.5)
+    parser.add_argument('--link-length',      type=float, default=0.25)
     parser.add_argument('--min-cluster-size', type=int, default=5)
     parser.add_argument('--out-prefix',       default='umap')
     args = parser.parse_args(argv)
@@ -22,7 +22,7 @@ def main(argv=None):
     out_prefix.mkdir(parents=True, exist_ok=True)
 
     sa = SpectraAnalyzer(out_dir=str(args.base_dir), night=args.night,
-                         tile=args.tile, band=args.band, dtype=np.float32
+                         tile=args.tile, band=args.band, dtype=np.float64
                          )
     sa.load_data(normalize=args.normalize)
 
@@ -32,6 +32,6 @@ def main(argv=None):
     mask = sa.get_outliers(min_cluster_size=args.min_cluster_size)
 
     out_fn = out_prefix/f'umap_{args.night}_{args.tile}.npz'
-    np.savez_compressed(out_fn, embedding=sa.embedding,labels=sa.labels,
-                        outlier_mask=mask, ivar=sa.ivar, z=sa.z, zerr=sa.zerr)
+    np.savez_compressed(out_fn, embedding=sa.embedding, labels=sa.labels,
+                        outlier_mask=mask, categories=sa.cat, ids=sa.ids, petals=sa.petals)
     # print(f'>>> Saved results to {out_fn}')
