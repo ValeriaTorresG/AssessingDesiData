@@ -10,6 +10,7 @@ from astropy.convolution import Gaussian1DKernel, convolve
 
 os.environ['PATH'] = '/Library/TeX/texbin:' + os.environ['PATH']
 plt.rcParams['text.usetex'] = True
+plt.style.use('./data/plots/desi.mplstyle')
 # plt.rcParams['font.family'] = 'serif'
 # plt.rcParams['font.serif'] = ['Times New Roman', 'Palatino', 'Computer Modern Roman']
 # plt.rcParams['font.size'] = 14
@@ -23,6 +24,7 @@ def plot_outlier_spectra(npz_file, out_dir, night, tile, plot_path=None):
     types_all = data['categories'][mask]
     types_all = [c.decode('utf-8') if isinstance(c, (bytes, bytearray)) else str(c)
                   for c in types_all]
+
     type_map = dict(zip(ids_all, types_all))
 
     petal_groups = defaultdict(list)
@@ -30,7 +32,7 @@ def plot_outlier_spectra(npz_file, out_dir, night, tile, plot_path=None):
         petal_groups[petal].append(tgt_id)
 
     if plot_path is None:
-        plot_path = os.path.join('../data', 'plots', 'spectra', night)
+        plot_path = os.path.join('./data', 'plots', 'spectra', night)
     os.makedirs(plot_path, exist_ok=True)
 
     kernel = Gaussian1DKernel(5)
@@ -53,7 +55,7 @@ def plot_outlier_spectra(npz_file, out_dir, night, tile, plot_path=None):
                 smooth[band]  = sf
 
         for i, tgt_id in enumerate([all_ids[j] for j in idxs]):
-            plt.figure(figsize=(20, 6))
+            plt.figure(figsize=(20, 8))
             for band, clr in zip(('B','R','Z'), ('b','g','r')):
                 plt.plot(waves[band], fluxes[band][i], color=clr, alpha=0.5)
                 plt.plot(waves[band], smooth[band][i], color='k', linewidth=0.8)

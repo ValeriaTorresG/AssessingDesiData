@@ -15,8 +15,8 @@ def main(argv=None):
 
     parser.add_argument('--tile',             required=True, help='Tile ID')
     parser.add_argument('--night',            required=True, help='Night of observation')
-    parser.add_argument('--base-dir',         default='../data/desi_data')
-    parser.add_argument('--processed-dir',    dest='processed_dir', default='../data/processed')
+    parser.add_argument('--base-dir',         default='./data/desi_data')
+    parser.add_argument('--processed-dir',    dest='processed_dir', default='./data/processed')
     parser.add_argument('--band',             default='brz', choices=['b','r','z','brz'])
     parser.add_argument('--normalize',        action='store_true')
     parser.add_argument('--n_neighbors',      type=int,   default=100)

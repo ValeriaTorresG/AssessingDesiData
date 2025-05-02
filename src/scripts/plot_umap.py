@@ -6,6 +6,7 @@ import argparse, os
 
 import matplotlib.pyplot as plt
 os.environ['PATH'] = '/Library/TeX/texbin:' + os.environ['PATH']
+plt.style.use('./data/plots/desi.mplstyle')
 plt.rcParams['text.usetex'] = True
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Times New Roman', 'Palatino', 'Computer Modern Roman']
@@ -79,7 +80,7 @@ def main(argv=None):
     p.add_argument('npz', help='npz file')
     p.add_argument('--tile', required=True)
     p.add_argument('--night', required=True)
-    p.add_argument('--outdir', default='../data/plots/umap')
+    p.add_argument('--outdir', default='./data/plots/umap')
     args = p.parse_args(argv)
 
     df = load_data(args.npz)
