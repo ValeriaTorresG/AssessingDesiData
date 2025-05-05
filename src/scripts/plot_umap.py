@@ -41,13 +41,13 @@ def plot_umap(df, tile_id, night, out_dir):
     cats = sorted(df['category'].unique())
     cmap = sns.color_palette('mako', as_cmap=True)
     colors = {c: cmap(i / (len(cats)-1) * 0.7 + 0.1) for i,c in enumerate(cats)}
-    colors = ['#75bbfd', '#c20078', '#96f97b', '#ff8800', '#9900ff']
+    #colors = ['#75bbfd', '#c20078', '#96f97b', '#ff8800', '#9900ff']
 
     for i,c in enumerate(cats):
         mask = (df['category'] == c) & (~df['is_outlier'])
         ax.scatter(df.loc[mask, 'UMAP1'],
                     df.loc[mask, 'UMAP2'],
-                    s=30, color=colors[i],
+                    s=30, color=colors[c],
                     label=c, alpha=0.7,
                     )
 

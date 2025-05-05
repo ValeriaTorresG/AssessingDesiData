@@ -31,12 +31,12 @@ def main(argv=None):
     Path(args.processed_dir).mkdir(parents=True, exist_ok=True)
 
     # 1. process all petals from tile
-    process_tile_main(['--night',    args.night,
-                       '--tile',     args.tile,
-                       '--base-dir', args.base_dir,
-                       '--out-dir',  args.processed_dir,
-                       '--workers',  str(args.workers)
-                       ])
+    # process_tile_main(['--night',    args.night,
+    #                    '--tile',     args.tile,
+    #                    '--base-dir', args.base_dir,
+    #                    '--out-dir',  args.processed_dir,
+    #                    '--workers',  str(args.workers)
+    #                    ])
 
     # 2. execute UMAP + FoF + outliers
     run_model_main([args.processed_dir,

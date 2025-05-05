@@ -94,7 +94,7 @@ def allocate_matrices(md:Metadata, bands:Sequence[str]):
 
 def fill_matrices(files:List[str], bands:List[str], md:Metadata, fp:np.ndarray,
                   iv:np.ndarray, z:np.ndarray, ze:np.ndarray, ids: np.ndarray,
-                  cat: np.ndarray, petals: np.ndarray):
+                  cat: np.ndarray, petals: np.ndarray, fiber_ids: np.ndarray):
     """
     Fill fp, iv, z and ze by reading each file and assigning values with
     vectorized indexing.

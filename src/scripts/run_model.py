@@ -34,5 +34,5 @@ def main(argv=None):
     out_fn = out_prefix/f'umap_{args.night}_{args.tile}.npz'
     np.savez_compressed(out_fn, embedding=sa.embedding, labels=sa.labels,
                         outlier_mask=mask, categories=sa.cat, ids=sa.ids, petals=sa.petals)
-    sa.save_outliers_info(out_prefix, mask=mask)
+    # sa.save_outliers_info(f'{out_prefix}/text_files', mask=mask)
     # print(f'>>> Saved results to {out_fn}')

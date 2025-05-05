@@ -1,5 +1,6 @@
 import numpy as np
 import umap
+import os
 from sklearn.neighbors import radius_neighbors_graph
 from scipy.sparse.csgraph import connected_components
 from dataclasses import dataclass, field
@@ -81,11 +82,11 @@ class SpectraAnalyzer:
         """
         Save outlier info (target_id, tile_id, fiber) to a text file.
         """
-        mask = self.get_outliers(min_cluster_size)
+        os.makedirs(outfile, exist_ok=True)
         out_ids = self.ids[mask]
         out_fibers = self.fibers[mask]
-        with open(outfile, 'w') as f:
-            f.write('target_id\ttile_id\tfiber\n')
+        with open(f'{outfile}/{self.night}_{self.tile}.txt', 'w') as f:
+            f.write('target_id,tile_id,fiber\n')
             for tid, fib in zip(out_ids, out_fibers):
-                f.write(f"{tid}\t{self.tile}\t{fib}\n")
+                f.write(f'{tid},{self.tile},{fib}\n')
         return outfile
