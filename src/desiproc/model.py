@@ -86,7 +86,7 @@ class SpectraAnalyzer:
         out_ids = self.ids[mask]
         out_fibers = self.fibers[mask]
         with open(f'{outfile}/{self.night}_{self.tile}.txt', 'w') as f:
-            f.write('target_id,tile_id,fiber\n')
+            f.write('TARGETID,TILEID,FIBER\n')
             for tid, fib in zip(out_ids, out_fibers):
                 f.write(f'{tid},{self.tile},{fib}\n')
         return outfile
