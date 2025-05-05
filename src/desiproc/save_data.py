@@ -18,6 +18,7 @@ class SpectraPipeline:
     data_path: str = '../data/'
 
     ids: np.ndarray = field(default_factory=lambda: np.array([], dtype=int), init=False)
+    fibers: np.ndarray = field(default_factory=lambda: np.array([], dtype=int), init=False)
     idx: np.ndarray = field(default_factory=lambda: np.array([], dtype=int), init=False)
     bands: Dict[str, np.ndarray] = field(default_factory=dict, init=False)
     z_rr: np.ndarray = field(default_factory=lambda: np.array([], dtype=float), init=False)
@@ -47,16 +48,17 @@ class SpectraPipeline:
         match = re.match(r"^coadd-(\d+)-(\d+)-thru(\d+)$", coadd_path.stem)
         if match is None:
             raise ValueError(f'Cannot parse coadd filename {coadd_path.name}')
-        petal, tileid, night = match.groups()
+        self.petal, self.tileid, self.night = match.groups()
         parent = Path(output_dir)
         parent.mkdir(parents=True, exist_ok=True)
         ext = ext if ext.startswith('.') else f'.{ext}'
-        self.fn_out = str(parent / f'{night}-{tileid}-{petal}{ext}')
+        self.fn_out = str(parent / f'{self.night}-{self.tileid}-{self.petal}{ext}')
 
     def _filter_fibers(self, fmap: np.recarray):
         mask = (fmap['COADD_FIBERSTATUS'] == 0) & (fmap['TARGETID'] != 0)
         self.idx = np.nonzero(mask)[0]
         self.ids = fmap['TARGETID'][self.idx]
+        self.fibers = fmap['FIBER'][self.idx]
 
     def _extract_spectra(self, coadd_hdul: fits.HDUList):
         for band in ('B', 'R', 'Z'):
@@ -92,6 +94,8 @@ class SpectraPipeline:
             with h5py.File(self.fn_out, 'w') as f:
                 gm = f.create_group('metadata')
                 gm.create_dataset('target_id', data=self.ids,
+                                  compression='gzip', compression_opts=4)
+                gm.create_dataset('fiber_id', data=self.fibers,
                                   compression='gzip', compression_opts=4)
                 # Write types as raw byte strings
                 gm.create_dataset('types', data=self.types,

@@ -24,16 +24,17 @@ class SpectraAnalyzer:
     ids: Optional[np.ndarray] = field(default=None, init=False)
     cat: Optional[str] = field(default=None, init=False)
     petals: Optional[np.ndarray] = field(default=None, init=False)
-    n_clusters:Optional[int] = field(default=None, init=False)
+    fibers: Optional[np.ndarray] = field(default=None, init=False)
+    n_clusters: Optional[int] = field(default=None, init=False)
 
-    def load_data(self, normalize:bool=False):
+    def load_data(self, normalize: bool = False):
         """
         Build a matrix of spectra from HDF5 files using zero padding.
         """
-        wg, fp, iv, z, ze, ids, cat, pet = build_matrix(self.out_dir, self.night,
+        wg, fp, iv, z, ze, ids, cat, pet, fib = build_matrix(self.out_dir, self.night,
                                                         self.tile, bands=self.band.upper())#, normalize=normalize)
         self.wave_grid, self.flux, self.ivar, self.z, self.zerr = wg, fp, iv, z, ze
-        self.ids, self.cat, self.petals = ids, cat, pet
+        self.ids, self.cat, self.petals, self.fibers = ids, cat, pet, fib
 
     def compute_umap(self, **params):
         """
@@ -75,3 +76,16 @@ class SpectraAnalyzer:
         uniq, cnt = np.unique(self.labels, return_counts=True)
         small = uniq[cnt <= min_cluster_size]
         return np.isin(self.labels, small)
+
+    def save_outliers_info(self, outfile:str, mask:np.ndarray=None,):
+        """
+        Save outlier info (target_id, tile_id, fiber) to a text file.
+        """
+        mask = self.get_outliers(min_cluster_size)
+        out_ids = self.ids[mask]
+        out_fibers = self.fibers[mask]
+        with open(outfile, 'w') as f:
+            f.write('target_id\ttile_id\tfiber\n')
+            for tid, fib in zip(out_ids, out_fibers):
+                f.write(f"{tid}\t{self.tile}\t{fib}\n")
+        return outfile

@@ -8,13 +8,14 @@ from dataclasses import dataclass
 @dataclass
 class Metadata:
     fib_counts: List[int]
-    union_waves: Dict[str,np.ndarray]
-    band_offsets: Dict[str,int]
+    union_waves: Dict[str, np.ndarray]
+    band_offsets: Dict[str, int]
     total_fib: int
     waves_by_file: List[Dict[str, np.ndarray]]
     ids_by_file: List[np.ndarray]
-    types_by_file: List[str]
+    types_by_file: List[np.ndarray]
     petals_by_file: List[int]
+    fiber_ids_by_file: List[np.ndarray]
 
 
 def list_hdf5_files(out_dir:str, night:str, tile:str):
@@ -41,16 +42,20 @@ def gather_metadata(files:List[str], bands:List[str]):
     ids_by_file: List[np.ndarray] = []
     types_by_file: List[np.ndarray] = []
     petals_by_file: List[int] = []
+    fiber_ids_by_file: List[int] = []
 
     for fn in files:
         petal = os.path.basename(fn).split('-')[-1].split('.')[0]
         petals_by_file.append(petal)
         with h5py.File(fn, 'r') as f:
             ids = f['metadata/target_id'][:]
+            fiber_ids = f['metadata/fiber_id'][:]
 
             fib_counts.append(ids.size)
             total_fib += ids.size
+
             ids_by_file.append(ids)
+            fiber_ids_by_file.append(fiber_ids)
             types_by_file.append(f['metadata/types'][:])
 
             file_waves: Dict[str, np.ndarray] = {}
@@ -67,7 +72,7 @@ def gather_metadata(files:List[str], bands:List[str]):
         offset += union_waves[b].size
 
     return Metadata(fib_counts, union_waves, band_offsets, total_fib, waves_by_file,
-                    ids_by_file, types_by_file, petals_by_file)
+                    ids_by_file, types_by_file, petals_by_file, fiber_ids_by_file)
 
 
 def allocate_matrices(md:Metadata, bands:Sequence[str]):
@@ -83,7 +88,8 @@ def allocate_matrices(md:Metadata, bands:Sequence[str]):
     ids = np.empty(md.total_fib, dtype=md.ids_by_file[0].dtype)
     cat = np.empty(md.total_fib, dtype=object)
     petals= np.empty(md.total_fib, dtype=int)
-    return wg, fp, iv, z, ze, ids, cat, petals
+    fiber_ids = np.empty(md.total_fib, dtype=md.fiber_ids_by_file[0].dtype)
+    return wg, fp, iv, z, ze, ids, cat, petals, fiber_ids
 
 
 def fill_matrices(files:List[str], bands:List[str], md:Metadata, fp:np.ndarray,
@@ -101,6 +107,7 @@ def fill_matrices(files:List[str], bands:List[str], md:Metadata, fp:np.ndarray,
             ids[row:row + n] = md.ids_by_file[i]
             cat[row:row+n] = md.types_by_file[i]
             petals[row:row+n]= md.petals_by_file[i]
+            fiber_ids[row:row + n] = md.fiber_ids_by_file[i]
 
             file_waves = md.waves_by_file[i]
             for b in bands:
@@ -131,9 +138,9 @@ def build_matrix(out_dir:str, night:str, tile:str, bands:Tuple[str, ...]):
     """
     files = list_hdf5_files(out_dir, night, tile)
     md = gather_metadata(files, bands)
-    wg, fp, iv, z, ze, ids, cat, petals = allocate_matrices(md, bands)
-    fill_matrices(files, bands, md, fp, iv, z, ze, ids, cat, petals)
-    return wg, fp, iv, z, ze, ids, cat, petals
+    wg, fp, iv, z, ze, ids, cat, petals, fiber_ids = allocate_matrices(md, bands)
+    fill_matrices(files, bands, md, fp, iv, z, ze, ids, cat, petals, fiber_ids)
+    return wg, fp, iv, z, ze, ids, cat, petals, fiber_ids
 
 
 #! ------- Saw this in a paper, haven't tried it yet -------
