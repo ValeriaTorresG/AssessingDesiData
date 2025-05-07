@@ -47,14 +47,42 @@
     align-items: center;
 }
 
+.card-body {
+    text-align: center;
+    display: flex;
+}
+
 .card-img-top{
-    width: 50%;
+    width: 60%;
+    height: auto;
+}
+
+.card_title {
+    font-size: 2em;
+    text-align: center;
+    font-family: Lucida Console, monospace;
+}
+.img-fluid {
+    width: 60%;
+    height: auto;
+    margin-right: 7%;
+}
+
+.card {
+    margin-top: font;
+    text-align: center;
+    padding-top: 3%;
+}
+
+.btn-div {
+    margin-bottom: 2%;
 }
 
 .main-spectra{
-    margin-top: -5%;
+    margin-top: 3%;
     justify-content: center;
     align-items: center;
+    text-align: center;
 }
 
 .spectra-imgs{
@@ -69,4 +97,34 @@
     margin-bottom: 5%;
     justify-content: center;
     align-items: center;
+}
+
+.btn-txt {
+    display: inline-block;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    background: #3f79ca;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+  }
+
+.btns {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 2%;
+    font-family: Lucida Console, monospace;
+}
+
+.btn-txt:hover {
+    align-items: center;
+    justify-content: center;
+    background: #2f5a95;
+  }
+
+.card-body {
+    text-align: center;
+    display: flex;
 }

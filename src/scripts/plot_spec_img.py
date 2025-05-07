@@ -26,8 +26,8 @@ for i in range(len(nights)):
         line = l.split('_')
         tgt_id = int(line[-1].split('.')[0])
         petal = line[-2]
-        redrock_file = f'./desi_data/{tile}/{night}/redrock-{petal}-{tile}-thru{night}.fits'
-        coadd_file = f'./desi_data/{tile}/{night}/coadd-{petal}-{tile}-thru{night}.fits'
+        redrock_file = f'../data/desi_data/{tile}/{night}/redrock-{petal}-{tile}-thru{night}.fits'
+        coadd_file = f'../data/desi_data/{tile}/{night}/coadd-{petal}-{tile}-thru{night}.fits'
         kernel  = Gaussian1DKernel(5)
 
         with fits.open(redrock_file) as rr:
@@ -125,9 +125,9 @@ for i in range(len(nights)):
         ax_im.imshow(img)
         ax_im.axis('off')
 
-        w, h = img.size                 # ancho y alto en píxeles
-        cx, cy = w/2, h/2                # centro de la imagen
-        radius = 3                    # radio en píxeles, ajusta a tu gusto
+        w, h = img.size
+        cx, cy = w/2, h/2
+        radius = 3
 
         circ = Circle(
             (cx, cy), radius,

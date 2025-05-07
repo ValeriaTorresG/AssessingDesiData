@@ -9,6 +9,8 @@ from scripts.process_tile import main as process_tile_main
 from scripts.run_model import main as run_model_main
 from scripts.plot_umap import main as plot_umap_main
 from scripts.plot_spectra import main as plot_spectra_main
+from scripts.plot_fibers import main as plot_fibers_main
+from scripts.generate_html import generate_html
 
 def main(argv=None):
     parser = argparse.ArgumentParser()
@@ -19,6 +21,7 @@ def main(argv=None):
     parser.add_argument('--processed-dir',    dest='processed_dir', default='./data/processed')
     parser.add_argument('--band',             default='brz', choices=['b','r','z','brz'])
     parser.add_argument('--normalize',        action='store_true')
+    parser.add_argument('--fiber_plot',       default='./data/plots')
     parser.add_argument('--n_neighbors',      type=int,   default=100)
     parser.add_argument('--min_dist',         type=float, default=1.0)
     parser.add_argument('--n_components',     type=int,   default=2)
@@ -31,12 +34,12 @@ def main(argv=None):
     Path(args.processed_dir).mkdir(parents=True, exist_ok=True)
 
     # 1. process all petals from tile
-    # process_tile_main(['--night',    args.night,
-    #                    '--tile',     args.tile,
-    #                    '--base-dir', args.base_dir,
-    #                    '--out-dir',  args.processed_dir,
-    #                    '--workers',  str(args.workers)
-    #                    ])
+    '''process_tile_main(['--night',    args.night,
+                       '--tile',     args.tile,
+                       '--base-dir', args.base_dir,
+                       '--out-dir',  args.processed_dir,
+                       '--workers',  str(args.workers)
+                       ])
 
     # 2. execute UMAP + FoF + outliers
     run_model_main([args.processed_dir,
@@ -66,7 +69,16 @@ def main(argv=None):
                         # '--plot-path', str(Path(args.processed_dir)/'plots/spectra')
                         ])
 
-    print(f"{args.night},{args.tile},{time.time()-start:.1f}")
+    # 5. plot fibers
+    plot_fibers_main(str(Path(args.processed_dir)/f'umap/umap_{args.night}_{args.tile}.npz'),
+                      str(Path(args.processed_dir)),
+                      args.night, args.tile,
+                      str(Path(args.fiber_plot)/'fibers/'))'''
+
+    #6. Update html
+    generate_html()
+
+    print(f'{args.night},{args.tile},{time.time()-start:.1f}')
 
 if __name__ == '__main__':
     main()

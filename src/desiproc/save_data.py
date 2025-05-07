@@ -59,6 +59,8 @@ class SpectraPipeline:
         self.idx = np.nonzero(mask)[0]
         self.ids = fmap['TARGETID'][self.idx]
         self.fibers = fmap['FIBER'][self.idx]
+        self.fiber_x = fmap['MEAN_FIBER_X'][self.idx]
+        self.fiber_y = fmap['MEAN_FIBER_Y'][self.idx]
 
     def _extract_spectra(self, coadd_hdul: fits.HDUList):
         for band in ('B', 'R', 'Z'):
@@ -96,6 +98,10 @@ class SpectraPipeline:
                 gm.create_dataset('target_id', data=self.ids,
                                   compression='gzip', compression_opts=4)
                 gm.create_dataset('fiber_id', data=self.fibers,
+                                  compression='gzip', compression_opts=4)
+                gm.create_dataset('fiber_x', data=self.fiber_x,
+                                  compression='gzip', compression_opts=4)
+                gm.create_dataset('fiber_y', data=self.fiber_y,
                                   compression='gzip', compression_opts=4)
                 # Write types as raw byte strings
                 gm.create_dataset('types', data=self.types,
