@@ -7,7 +7,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, '..', '..'))
 
 DATA_ROOT = os.path.join(PROJECT_ROOT, 'data')
-TILES_DIR = os.path.join(DATA_ROOT, 'plots', 'tiles')
+FIBER_DIR = os.path.join(DATA_ROOT, 'plots', 'fibers')
 SPECTRA_DIR = os.path.join(DATA_ROOT, 'plots', 'spectra')
 UMAP_DIR = os.path.join(DATA_ROOT, 'plots', 'umap')
 TXT_DIR = os.path.join(DATA_ROOT, 'text_files')
@@ -38,14 +38,13 @@ def make_desi_url(tile: str, night: str) -> Optional[str]:
 
 
 def generate_html():
-    pattern = re.compile(r'tile_(\d+)_(\d{8})\.png')
+    pattern = re.compile(r'fibers_(\d{8})_(\d+)\.png')
     entries = []
 
-    for fname in sorted(os.listdir(TILES_DIR)):
+    for fname in sorted(os.listdir(FIBER_DIR)):
         m = pattern.match(fname)
         if m:
-            tile, night = m.group(1), m.group(2)
-
+            night, tile = m.group(1), m.group(2)
             spec_dir = os.path.join(SPECTRA_DIR, night)
             specs = []
             if os.path.isdir(spec_dir):

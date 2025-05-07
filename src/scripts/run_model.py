@@ -16,6 +16,7 @@ def main(argv=None):
     parser.add_argument('--link-length',      type=float, default=0.25)
     parser.add_argument('--min-cluster-size', type=int, default=5)
     parser.add_argument('--out-prefix',       default='umap')
+    parser.add_argument('--out_txt',          default='./data/text_files')
     args = parser.parse_args(argv)
 
     out_prefix = Path(args.out_prefix)
@@ -34,5 +35,5 @@ def main(argv=None):
     out_fn = out_prefix/f'umap_{args.night}_{args.tile}.npz'
     np.savez_compressed(out_fn, embedding=sa.embedding, labels=sa.labels,
                         outlier_mask=mask, categories=sa.cat, ids=sa.ids, petals=sa.petals)
-    # sa.save_outliers_info(f'{out_prefix}/text_files', mask=mask)
+    sa.save_outliers_info(args.out_txt, mask=mask)
     # print(f'>>> Saved results to {out_fn}')
