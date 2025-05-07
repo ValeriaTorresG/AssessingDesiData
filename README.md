@@ -9,7 +9,7 @@ Key features include:
 - [x]  Plot the results of the UMAP projection, each point represents an object’s spectrum in the low-dimensional space. Points are color-coded by object category (e.g., gal, qso, std).
 ## Outliers identified
 
- - Some outliers found are displayed [here](https://valeriatorresg.github.io/DESI-data/).
+ - Some outliers found are displayed [here]([https://valeriatorresg.github.io/DESI-data/](https://valeriatorresg.github.io/AssessingDesiData/)).
 
 
 ## Running Tests
