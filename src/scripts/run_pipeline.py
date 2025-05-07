@@ -34,7 +34,7 @@ def main(argv=None):
     Path(args.processed_dir).mkdir(parents=True, exist_ok=True)
 
     # 1. process all petals from tile
-    process_tile_main(['--night',    args.night,
+    '''process_tile_main(['--night',    args.night,
                        '--tile',     args.tile,
                        '--base-dir', args.base_dir,
                        '--out-dir',  args.processed_dir,
@@ -59,7 +59,7 @@ def main(argv=None):
     plot_umap_main([str(Path(args.processed_dir)/f'umap/umap_{args.night}_{args.tile}.npz'),
                     '--night', args.night,
                     '--tile', args.tile,
-                    ])
+                    ])'''
 
     #4. plot spectra
     plot_spectra_main([str(Path(args.processed_dir)/f'umap/umap_{args.night}_{args.tile}.npz'),
