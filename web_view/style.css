@@ -65,7 +65,7 @@
 .img-fluid {
     width: 60%;
     height: auto;
-    margin-right: 7%;
+    /* margin-right: 0%; */
 }
 
 .card {
