@@ -56,8 +56,8 @@ def plot_outlier_spectra(npz_file, out_dir, night, tile, plot_path=None):
 
         for i, tgt_id in enumerate([all_ids[j] for j in idxs]):
             plt.figure(figsize=(20, 8))
-            for band, clr in zip(('B','R','Z'), ('b','g','r')):
-                plt.plot(waves[band], fluxes[band][i], color=clr, alpha=0.5)
+            for band, clr in zip(('B','R','Z'), ('#1f77b4','#d52628','#a1151f')):
+                plt.plot(waves[band], fluxes[band][i], color=clr, alpha=0.9)
                 plt.plot(waves[band], smooth[band][i], color='k', linewidth=0.8)
 
             plt.xlim(3500, 9900)

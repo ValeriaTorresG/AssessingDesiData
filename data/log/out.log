@@ -17,3 +17,91 @@ night,tile,time
 20220130,11874,112.4
 20210419,334,114.3
 20210419,334,97.3
+20220130,11874,17.4
+20220130,11874,15.8
+20220130,11874,15.9
+20220130,11874,17.6
+20220130,11874,15.8
+20220130,11874,15.7
+Traceback (most recent call last):
+  File "/Users/valeriatorresgomez/Library/CloudStorage/OneDrive-Universidaddelosandes/Escritorio/Universidad/2025-10/Proyecto Experimental/AssessingDesiData/./src/scripts/run_pipeline.py", line 1, in <module>
+    from pathlib import Path
+  File "/opt/anaconda3/lib/python3.12/pathlib.py", line 20, in <module>
+    from urllib.parse import quote_from_bytes as urlquote_from_bytes
+  File "/opt/anaconda3/lib/python3.12/urllib/parse.py", line 251, in <module>
+    _SplitResultBase = namedtuple(
+                       ^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.12/collections/__init__.py", line 441, in namedtuple
+    __new__ = eval(code, namespace)
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 0, in <module>
+KeyboardInterrupt
+20220130,11874,15.9
+20220130,11874,15.9
+Traceback (most recent call last):
+  File "/Users/valeriatorresgomez/Library/CloudStorage/OneDrive-Universidaddelosandes/Escritorio/Universidad/2025-10/Proyecto Experimental/AssessingDesiData/./src/scripts/run_pipeline.py", line 84, in <module>
+    main()
+  File "/Users/valeriatorresgomez/Library/CloudStorage/OneDrive-Universidaddelosandes/Escritorio/Universidad/2025-10/Proyecto Experimental/AssessingDesiData/./src/scripts/run_pipeline.py", line 65, in main
+    plot_spectra_main([str(Path(args.processed_dir)/f'umap/umap_{args.night}_{args.tile}.npz'),
+  File "/Users/valeriatorresgomez/Library/CloudStorage/OneDrive-Universidaddelosandes/Escritorio/Universidad/2025-10/Proyecto Experimental/AssessingDesiData/src/scripts/plot_spectra.py", line 83, in main
+    plot_outlier_spectra(npz_file=args.npz_file, out_dir=args.out_dir,
+  File "/Users/valeriatorresgomez/Library/CloudStorage/OneDrive-Universidaddelosandes/Escritorio/Universidad/2025-10/Proyecto Experimental/AssessingDesiData/src/scripts/plot_spectra.py", line 71, in plot_outlier_spectra
+    plt.savefig(out_png, dpi=200)
+  File "/opt/anaconda3/lib/python3.12/site-packages/matplotlib/pyplot.py", line 1134, in savefig
+    res = fig.savefig(*args, **kwargs)  # type: ignore[func-returns-value]
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.12/site-packages/matplotlib/figure.py", line 3390, in savefig
+    self.canvas.print_figure(fname, **kwargs)
+  File "/opt/anaconda3/lib/python3.12/site-packages/matplotlib/backend_bases.py", line 2193, in print_figure
+    result = print_method(
+             ^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.12/site-packages/matplotlib/backend_bases.py", line 2043, in <lambda>
+    print_method = functools.wraps(meth)(lambda *args, **kwargs: meth(
+                                                                 ^^^^^
+  File "/opt/anaconda3/lib/python3.12/site-packages/matplotlib/backends/backend_agg.py", line 497, in print_png
+    self._print_pil(filename_or_obj, "png", pil_kwargs, metadata)
+  File "/opt/anaconda3/lib/python3.12/site-packages/matplotlib/backends/backend_agg.py", line 445, in _print_pil
+    FigureCanvasAgg.draw(self)
+  File "/opt/anaconda3/lib/python3.12/site-packages/matplotlib/backends/backend_agg.py", line 388, in draw
+    self.figure.draw(self.renderer)
+  File "/opt/anaconda3/lib/python3.12/site-packages/matplotlib/artist.py", line 95, in draw_wrapper
+    result = draw(artist, renderer, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.12/site-packages/matplotlib/artist.py", line 72, in draw_wrapper
+    return draw(artist, renderer)
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.12/site-packages/matplotlib/figure.py", line 3154, in draw
+    mimage._draw_list_compositing_images(
+  File "/opt/anaconda3/lib/python3.12/site-packages/matplotlib/image.py", line 132, in _draw_list_compositing_images
+    a.draw(renderer)
+  File "/opt/anaconda3/lib/python3.12/site-packages/matplotlib/artist.py", line 72, in draw_wrapper
+    return draw(artist, renderer)
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.12/site-packages/matplotlib/axes/_base.py", line 3070, in draw
+    mimage._draw_list_compositing_images(
+  File "/opt/anaconda3/lib/python3.12/site-packages/matplotlib/image.py", line 132, in _draw_list_compositing_images
+    a.draw(renderer)
+  File "/opt/anaconda3/lib/python3.12/site-packages/matplotlib/artist.py", line 72, in draw_wrapper
+    return draw(artist, renderer)
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.12/site-packages/matplotlib/spines.py", line 295, in draw
+    ret = super().draw(renderer)
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.12/site-packages/matplotlib/artist.py", line 74, in draw_wrapper
+    if artist.get_agg_filter() is not None:
+       ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.12/site-packages/matplotlib/artist.py", line 960, in get_agg_filter
+    def get_agg_filter(self):
+
+KeyboardInterrupt
+20220130,11874,17.1
+20220130,11874,16.1
+20220130,11874,15.7
+20220130,11874,20.6
+20211031,2436,1.1
+20211031,2436,1.1
+20211031,2436,12.2
+20210419,334,8.8
+20211110,10256,7.6
+20211130,5568,15.2
+20220130,11874,20.7

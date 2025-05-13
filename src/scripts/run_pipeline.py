@@ -55,11 +55,11 @@ def main(argv=None):
                     '--min-cluster-size', str(args.min_cluster_size)
                     ])
 
-    # 3. plot UMAP
+    # 3. plot UMAP'''
     plot_umap_main([str(Path(args.processed_dir)/f'umap/umap_{args.night}_{args.tile}.npz'),
                     '--night', args.night,
                     '--tile', args.tile,
-                    ])'''
+                    ])
 
     #4. plot spectra
     plot_spectra_main([str(Path(args.processed_dir)/f'umap/umap_{args.night}_{args.tile}.npz'),
@@ -70,13 +70,13 @@ def main(argv=None):
                         ])
 
     # 5. plot fibers
-    plot_fibers_main(str(Path(args.processed_dir)/f'umap/umap_{args.night}_{args.tile}.npz'),
+    '''plot_fibers_main(str(Path(args.processed_dir)/f'umap/umap_{args.night}_{args.tile}.npz'),
                       str(Path(args.processed_dir)),
                       args.night, args.tile,
-                      str(Path(args.fiber_plot)/'fibers/'))
+                      str(Path(args.fiber_plot)/'fibers/'))'''
 
     #6. Update html
-    generate_html()
+    # generate_html()
 
     print(f'{args.night},{args.tile},{time.time()-start:.1f}')
 

@@ -15,8 +15,8 @@ plt.rcParams['text.usetex'] = True
 plt.style.use('./data/plots/desi.mplstyle')
 
 
-nights = ['20211110', '20211130', '20211031']
-tiles = ['10256', '5568', '2436']
+nights = ['20220130']
+tiles = ['11874']
 
 for i in range(len(nights)):
     night = nights[i]
@@ -86,7 +86,7 @@ for i in range(len(nights)):
             (wave_b,   wave_r,   wave_z),
             (smooth_b, smooth_r, smooth_z),
             (err_b,    err_r,    err_z),
-            ('b','g','r'),
+            ('#1f77b4','#d52628','#a1151f'),
             ('B','R','Z')
         ):
             ax.plot(wave, flux,   color=color, alpha=0.6)#, label=f'{label} orig')
@@ -105,13 +105,13 @@ for i in range(len(nights)):
         info = (
             f"{z_type}\n"
             f"TargetID: {tgt_id}\n"
-            f"$(RA, DEC) = ({ra:.3f}, {dec:.3f})$\n"
+            f"RA, Dec = ${ra:.3f}, {dec:.3f}$\n"
             # f"r-fiber flux: {rfm:.2f}\n"
             f"$z = {zfit:.4f}$"
             # "$\n$ZWARN = {zwarn}$"
         )
         ax.text(0.03, 0.95, info, transform=ax.transAxes,
-                va='top', fontsize=16, bbox=dict(facecolor='white', alpha=0.6))
+                va='top', fontsize=14, bbox=dict(facecolor='white', alpha=0.6))
 
         cutout_url = (
             f"https://www.legacysurvey.org/viewer/cutout.jpg?"
@@ -141,5 +141,5 @@ for i in range(len(nights)):
         ax_im.axis('off')
 
         plt.tight_layout()
-        plt.savefig(f'./otras/{night}_{tile}_{petal}_{tgt_id}.png', dpi=360)
+        plt.savefig(f'./{night}_{tile}_{petal}_{tgt_id}.png', dpi=360)
         plt.close()

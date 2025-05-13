@@ -39,7 +39,7 @@ def plot_umap(df, tile_id, night, out_dir):
 
     #! sns mako??
     cats = sorted(df['category'].unique())
-    cmap = sns.color_palette('mako', as_cmap=True)
+    cmap = sns.color_palette('mako', as_cmap=True).reversed()
     colors = {c: cmap(i / (len(cats)-1) * 0.7 + 0.1) for i,c in enumerate(cats)}
     #colors = ['#75bbfd', '#c20078', '#96f97b', '#ff8800', '#9900ff']
 
@@ -61,7 +61,7 @@ def plot_umap(df, tile_id, night, out_dir):
                     label='Outliers'
                     )
 
-    ax.legend()
+    ax.legend(markerscale=2)
     ax.set_xticks([]); ax.set_yticks([])
     plt.axis('off')
     title = (f'\n{len(df)} spectra, {df.meta_n_clusters} clusters\n'
