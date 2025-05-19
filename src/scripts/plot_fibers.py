@@ -4,8 +4,8 @@ import numpy as np
 import h5py
 import matplotlib.pyplot as plt
 
-os.environ['PATH'] = '/Library/TeX/texbin:' + os.environ['PATH']
-plt.rcParams['text.usetex'] = True
+# os.environ['PATH'] = '/Library/TeX/texbin:' + os.environ['PATH']
+# plt.rcParams['text.usetex'] = True
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Times New Roman', 'Palatino', 'Computer Modern Roman']
 plt.style.use('./data/plots/desi.mplstyle')

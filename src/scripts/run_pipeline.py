@@ -17,7 +17,7 @@ def main(argv=None):
 
     parser.add_argument('--tile',             required=True, help='Tile ID')
     parser.add_argument('--night',            required=True, help='Night of observation')
-    parser.add_argument('--base-dir',         default='./data/desi_data')
+    parser.add_argument('--base-dir',         default='/global/cfs/cdirs/desi/spectro/redux/jura/tiles/cumulative/')
     parser.add_argument('--processed-dir',    dest='processed_dir', default='./data/processed')
     parser.add_argument('--band',             default='brz', choices=['b','r','z','brz'])
     parser.add_argument('--normalize',        action='store_true')
@@ -34,7 +34,7 @@ def main(argv=None):
     Path(args.processed_dir).mkdir(parents=True, exist_ok=True)
 
     # 1. process all petals from tile
-    '''process_tile_main(['--night',    args.night,
+    process_tile_main(['--night',    args.night,
                        '--tile',     args.tile,
                        '--base-dir', args.base_dir,
                        '--out-dir',  args.processed_dir,
@@ -47,7 +47,7 @@ def main(argv=None):
                     '--tile',             args.tile,
                     '--band',             args.band,
                     '--out-prefix',       str(Path(args.processed_dir)/'umap'),
-                    *(['--normalize']     if args.normalize else []),
+                    # *(['--normalize']     if args.normalize else []),
                     '--n_neighbors',      str(args.n_neighbors),
                     '--min_dist',         str(args.min_dist),
                     '--n_components',     str(args.n_components),
@@ -55,7 +55,7 @@ def main(argv=None):
                     '--min-cluster-size', str(args.min_cluster_size)
                     ])
 
-    # 3. plot UMAP'''
+    # 3. plot UMAP
     plot_umap_main([str(Path(args.processed_dir)/f'umap/umap_{args.night}_{args.tile}.npz'),
                     '--night', args.night,
                     '--tile', args.tile,
@@ -70,13 +70,13 @@ def main(argv=None):
                         ])
 
     # 5. plot fibers
-    '''plot_fibers_main(str(Path(args.processed_dir)/f'umap/umap_{args.night}_{args.tile}.npz'),
+    plot_fibers_main(str(Path(args.processed_dir)/f'umap/umap_{args.night}_{args.tile}.npz'),
                       str(Path(args.processed_dir)),
                       args.night, args.tile,
-                      str(Path(args.fiber_plot)/'fibers/'))'''
+                      str(Path(args.fiber_plot)/'fibers/'))
 
     #6. Update html
-    # generate_html()
+    generate_html()
 
     print(f'{args.night},{args.tile},{time.time()-start:.1f}')
 

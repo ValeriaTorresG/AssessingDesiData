@@ -5,9 +5,9 @@ from pathlib import Path
 import argparse, os
 
 import matplotlib.pyplot as plt
-os.environ['PATH'] = '/Library/TeX/texbin:' + os.environ['PATH']
+# os.environ['PATH'] = '/Library/TeX/texbin:' + os.environ['PATH']
 plt.style.use('./data/plots/desi.mplstyle')
-plt.rcParams['text.usetex'] = True
+# plt.rcParams['text.usetex'] = True
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Times New Roman', 'Palatino', 'Computer Modern Roman']
 plt.rcParams['font.size'] = 14
