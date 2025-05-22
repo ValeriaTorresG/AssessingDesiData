@@ -18,10 +18,11 @@ def main(argv=None):
     parser.add_argument('--tile',             required=True, help='Tile ID')
     parser.add_argument('--night',            required=True, help='Night of observation')
     parser.add_argument('--base-dir',         default='/global/cfs/cdirs/desi/spectro/redux/jura/tiles/cumulative/')
-    parser.add_argument('--processed-dir',    dest='processed_dir', default='./data/processed')
+    parser.add_argument('--processed-dir',    dest='processed_dir', default='/pscratch/sd/v/vtorresg/umap_analysis/data/processed/')
     parser.add_argument('--band',             default='brz', choices=['b','r','z','brz'])
     parser.add_argument('--normalize',        action='store_true')
-    parser.add_argument('--fiber_plot',       default='./data/plots')
+    parser.add_argument('--fiber_plot',       default='/pscratch/sd/v/vtorresg/umap_analysis/data/plots')
+    parser.add_argument('--out_txt',          default='/pscratch/sd/v/vtorresg/umap_analysis/data/text_files')
     parser.add_argument('--n_neighbors',      type=int,   default=100)
     parser.add_argument('--min_dist',         type=float, default=1.0)
     parser.add_argument('--n_components',     type=int,   default=2)
@@ -42,9 +43,11 @@ def main(argv=None):
                        ])
 
     # 2. execute UMAP + FoF + outliers
+    Path(args.out_txt).mkdir(parents=True, exist_ok=True)
     run_model_main([args.processed_dir,
                     '--night',            args.night,
                     '--tile',             args.tile,
+                    '--out_txt',          str(Path(args.out_txt)),
                     '--band',             args.band,
                     '--out-prefix',       str(Path(args.processed_dir)/'umap'),
                     # *(['--normalize']     if args.normalize else []),
@@ -59,6 +62,7 @@ def main(argv=None):
     plot_umap_main([str(Path(args.processed_dir)/f'umap/umap_{args.night}_{args.tile}.npz'),
                     '--night', args.night,
                     '--tile', args.tile,
+                    '--outdir', str(Path(args.fiber_plot)/'umap'),
                     ])
 
     #4. plot spectra
@@ -66,7 +70,7 @@ def main(argv=None):
                         str(Path(args.processed_dir)),
                         '--night', args.night,
                         '--tile', args.tile,
-                        # '--plot-path', str(Path(args.processed_dir)/'plots/spectra')
+                        '--plot-path', str(Path(args.fiber_plot)/'spectra')
                         ])
 
     # 5. plot fibers
@@ -76,7 +80,7 @@ def main(argv=None):
                       str(Path(args.fiber_plot)/'fibers/'))
 
     #6. Update html
-    generate_html()
+    # generate_html()
 
     print(f'{args.night},{args.tile},{time.time()-start:.1f}')
 

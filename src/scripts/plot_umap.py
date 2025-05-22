@@ -5,11 +5,7 @@ from pathlib import Path
 import argparse, os
 
 import matplotlib.pyplot as plt
-# os.environ['PATH'] = '/Library/TeX/texbin:' + os.environ['PATH']
 plt.style.use('./data/plots/desi.mplstyle')
-# plt.rcParams['text.usetex'] = True
-plt.rcParams['font.family'] = 'serif'
-plt.rcParams['font.serif'] = ['Times New Roman', 'Palatino', 'Computer Modern Roman']
 plt.rcParams['font.size'] = 14
 
 def load_data(npz_path):
@@ -37,11 +33,9 @@ def plot_umap(df, tile_id, night, out_dir):
     out_dir.mkdir(parents=True, exist_ok=True)
     fig, ax = plt.subplots(figsize=(9,8))
 
-    #! sns mako??
     cats = sorted(df['category'].unique())
     cmap = sns.color_palette('mako', as_cmap=True).reversed()
     colors = {c: cmap(i / (len(cats)-1) * 0.7 + 0.1) for i,c in enumerate(cats)}
-    #colors = ['#75bbfd', '#c20078', '#96f97b', '#ff8800', '#9900ff']
 
     for i,c in enumerate(cats):
         mask = (df['category'] == c) & (~df['is_outlier'])
@@ -73,7 +67,6 @@ def plot_umap(df, tile_id, night, out_dir):
     fn = out_dir / f'umap_{tile_id}_{night}.png'
     plt.savefig(fn, dpi=200, bbox_inches='tight')
     plt.close()
-    # print(f'>>> Saved plot to {fn}')
 
 def main(argv=None):
     p = argparse.ArgumentParser()

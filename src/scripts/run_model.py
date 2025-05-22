@@ -8,6 +8,7 @@ def main(argv=None):
     parser.add_argument('base_dir',           help='Path to processed .h5 files')
     parser.add_argument('--night',            required=True)
     parser.add_argument('--tile',             required=True)
+    parser.add_argument('--out_txt',          required=True)
     parser.add_argument('--band',             default='brz', choices=['b','r','z','brz'])
     parser.add_argument('--normalize',        action='store_true')
     parser.add_argument('--n_neighbors',      type=int, default=100)
@@ -16,7 +17,6 @@ def main(argv=None):
     parser.add_argument('--link-length',      type=float, default=0.25)
     parser.add_argument('--min-cluster-size', type=int, default=5)
     parser.add_argument('--out-prefix',       default='umap')
-    parser.add_argument('--out_txt',          default='./data/text_files')
     args = parser.parse_args(argv)
 
     out_prefix = Path(args.out_prefix)
@@ -36,4 +36,3 @@ def main(argv=None):
     np.savez_compressed(out_fn, embedding=sa.embedding, labels=sa.labels,
                         outlier_mask=mask, categories=sa.cat, ids=sa.ids, petals=sa.petals)
     sa.save_outliers_info(args.out_txt, mask=mask)
-    # print(f'>>> Saved results to {out_fn}')

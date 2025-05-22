@@ -3,15 +3,12 @@ import argparse
 import numpy as np
 import h5py
 import matplotlib.pyplot as plt
-
-# os.environ['PATH'] = '/Library/TeX/texbin:' + os.environ['PATH']
-# plt.rcParams['text.usetex'] = True
-plt.rcParams['font.family'] = 'serif'
-plt.rcParams['font.serif'] = ['Times New Roman', 'Palatino', 'Computer Modern Roman']
 plt.style.use('./data/plots/desi.mplstyle')
 
 
 def main(npz:str, h5_dir:str, night:str, tile:str, output:str):
+    os.makedirs(output, exist_ok=True)
+
     data = np.load(npz)
     ids, petals = data['ids'], data['petals']
     outlier_mask = data['outlier_mask']
@@ -22,8 +19,8 @@ def main(npz:str, h5_dir:str, night:str, tile:str, output:str):
         h5_path = os.path.join(h5_dir,
                                f'{night}-{tile}-{petal_id}.h5')
         if not os.path.isfile(h5_path):
-            print(f'Couldnt find {h5_path}')
-            raise
+            # print(f'Couldnt find {h5_path}')
+            continue
 
         with h5py.File(h5_path, 'r') as f:
             x_all = f['metadata/fiber_x'][:]

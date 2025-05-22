@@ -34,7 +34,7 @@ class SpectraPipeline:
                 self._extract_spectra(coadd)
                 self._load_redrock(rr[1].data)
         except Exception as e:
-            print(f'Error during FITS I/O or data extraction: {e}, {self.fn_coadd}', file=sys.stderr)
+            # print(f'No data for petal: {self.fn_coadd}', file=sys.stderr)
             raise
 
         try:

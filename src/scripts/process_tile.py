@@ -17,7 +17,6 @@ def main(argv=None):
     parser.add_argument('--workers',  type=int, default=10)
     args = parser.parse_args(argv)
 
-    # Path(args.out_dir).mkdir(parents=True, exist_ok=True)
     start = time.time()
     with ProcessPoolExecutor(max_workers=args.workers) as exe:
         futures = [exe.submit(process_petal, petal, args) for petal in range(10)]
@@ -25,5 +24,4 @@ def main(argv=None):
             try:
                 fut.result()
             except Exception as e:
-                print(f"Error in petal: {e}")
-    # print(f">>> Tile {args.tile} done in {time.time()-start:.1f}s")
+                continue

@@ -1,19 +1,12 @@
-#!/usr/bin/env python3
 import os
 import argparse
 from collections import defaultdict
 
 import numpy as np
 import h5py
-import matplotlib.pyplot as plt
 from astropy.convolution import Gaussian1DKernel, convolve
-
-# os.environ['PATH'] = '/Library/TeX/texbin:' + os.environ['PATH']
-# plt.rcParams['text.usetex'] = True
+import matplotlib.pyplot as plt
 plt.style.use('./data/plots/desi.mplstyle')
-# plt.rcParams['font.family'] = 'serif'
-# plt.rcParams['font.serif'] = ['Times New Roman', 'Palatino', 'Computer Modern Roman']
-# plt.rcParams['font.size'] = 14
 
 
 def plot_outlier_spectra(npz_file, out_dir, night, tile, plot_path=None):
