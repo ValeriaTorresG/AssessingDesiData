@@ -12,7 +12,7 @@ class SpectraAnalyzer:
     """
     Executes padding, UMAP embedding, FoF clustering and outlier detection.
     """
-    out_dir:str; night:str; tile:str; band:str='brz'; dtype:np.dtype=np.float64
+    out_dir:str; night:str; tile:str; band:str='brz'; dtype:np.dtype=np.float32
 
     wave_grid: Optional[np.ndarray] = field(default=None, init=False)
     flux: Optional[np.ndarray] = field(default=None, init=False)

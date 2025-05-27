@@ -23,7 +23,7 @@ def main(argv=None):
     out_prefix.mkdir(parents=True, exist_ok=True)
 
     sa = SpectraAnalyzer(out_dir=str(args.base_dir), night=args.night,
-                         tile=args.tile, band=args.band, dtype=np.float64
+                         tile=args.tile, band=args.band, dtype=np.float32
                          )
     sa.load_data(normalize=args.normalize)
 

@@ -80,9 +80,9 @@ def allocate_matrices(md:Metadata, bands:Sequence[str]):
     Reserve matrices for flux, ivar, z, zerr, and the wavelength vector.
     """
     total_cols = sum(md.union_waves[b].size for b in bands)
-    fp = np.zeros((md.total_fib, total_cols), dtype=np.float64)
+    fp = np.zeros((md.total_fib, total_cols), dtype=np.float32)
     iv = np.zeros_like(fp)
-    z = np.empty(md.total_fib, dtype=np.float64)
+    z = np.empty(md.total_fib, dtype=np.float32)
     ze = np.empty_like(z)
     wg = np.concatenate([md.union_waves[b] for b in bands])
     ids = np.empty(md.total_fib, dtype=md.ids_by_file[0].dtype)

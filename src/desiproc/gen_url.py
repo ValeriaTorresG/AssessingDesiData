@@ -20,4 +20,4 @@ def make_desi_url(txt_dir:str, tile:str, night:str, out_log:str):
     url = f'https://inspector.desi.lbl.gov/loa/spectra/tiles/{tile}/{fiber_str}'
     
     with open(out_log, 'a', encoding='utf-8') as f:
-        f.write(f'{night},{tile},{url}\n')
+        f.write(f'{url}\n')

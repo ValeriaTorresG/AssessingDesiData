@@ -29,7 +29,7 @@ class SpectraPipeline:
         try:
             if self.fn_out is None:
                 self._get_filename(self.fn_coadd, self.data_path)
-            with fits.open(self.fn_coadd, memmap=True) as coadd, fits.open(self.fn_redrock, memmap=True) as rr:
+            with fits.open(self.fn_coadd, memmap=False) as coadd, fits.open(self.fn_redrock, memmap=False) as rr:
                 self._filter_fibers(coadd['FIBERMAP'].data)
                 self._extract_spectra(coadd)
                 self._load_redrock(rr[1].data)
@@ -96,37 +96,36 @@ class SpectraPipeline:
             with h5py.File(self.fn_out, 'w') as f:
                 gm = f.create_group('metadata')
                 gm.create_dataset('target_id', data=self.ids,
-                                  compression='gzip', compression_opts=4)
+                                  compression=None)
                 gm.create_dataset('fiber_id', data=self.fibers,
-                                  compression='gzip', compression_opts=4)
+                                  compression=None)
                 gm.create_dataset('fiber_x', data=self.fiber_x,
-                                  compression='gzip', compression_opts=4)
+                                  compression=None)
                 gm.create_dataset('fiber_y', data=self.fiber_y,
-                                  compression='gzip', compression_opts=4)
+                                  compression=None)
                 # Write types as raw byte strings
                 gm.create_dataset('types', data=self.types,
-                                  compression='gzip', compression_opts=4)
+                                  compression=None)
                 gm.create_dataset('redrock_z', data=self.z_rr,
-                                  compression='gzip', compression_opts=4)
+                                  compression=None)
                 gm.create_dataset('redrock_zerr', data=self.zerr_rr,
-                                  compression='gzip', compression_opts=4)
+                                  compression=None)
 
                 gs = f.create_group('spectra')
                 for band, (w, fl, iv, ms) in self.bands.items():
                     gb = gs.create_group(band)
                     gb.create_dataset('wavelength', data=w,
-                                      compression='gzip', compression_opts=4,
+                                      compression=None,
                                       chunks=w.shape)
-                    chunk_shape = (1, w.shape[0])
                     gb.create_dataset('flux', data=fl,
-                                      compression='gzip', compression_opts=4,
-                                      chunks=chunk_shape)
+                                      compression=None,
+                                      chunks=(fl.shape[0], min(fl.shape[1], 256)))
                     gb.create_dataset('ivar', data=iv,
-                                      compression='gzip', compression_opts=4,
-                                      chunks=chunk_shape)
+                                      compression=None,
+                                      chunks=(iv.shape[0], min(iv.shape[1], 256)))
                     gb.create_dataset('mask', data=ms,
-                                      compression='gzip', compression_opts=4,
-                                      chunks=chunk_shape)
+                                      compression=None,
+                                      chunks=(ms.shape[0], min(ms.shape[1], 256)))
         except Exception as e:
             print(f'HDF5 write error: {e}', file=sys.stderr)
             raise
