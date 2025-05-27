@@ -1,8 +1,13 @@
+import os
+os.environ["KMP_WARNINGS"] = "0"
+
 from pathlib import Path
 import time
 import argparse
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
 
-import sys, os
+import sys
 proj_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
 sys.path.insert(0, os.path.join(proj_root, 'src'))
 from scripts.process_tile import main as process_tile_main
@@ -11,6 +16,7 @@ from scripts.plot_umap import main as plot_umap_main
 from scripts.plot_spectra import main as plot_spectra_main
 from scripts.plot_fibers import main as plot_fibers_main
 from scripts.generate_html import generate_html
+from desiproc.gen_url import make_desi_url
 
 def main(argv=None):
     parser = argparse.ArgumentParser()
@@ -28,7 +34,8 @@ def main(argv=None):
     parser.add_argument('--n_components',     type=int,   default=2)
     parser.add_argument('--link-length',      type=float, default=0.25)
     parser.add_argument('--min-cluster-size', type=int,   default=5)
-    parser.add_argument('--workers',          type=int,   default=10)
+    parser.add_argument('--out_log',         default='/pscratch/sd/v/vtorresg/umap_analysis/data')
+    # parser.add_argument('--workers',          type=int,   default=10)
     args = parser.parse_args(argv)
 
     start = time.time()
@@ -39,7 +46,7 @@ def main(argv=None):
                        '--tile',     args.tile,
                        '--base-dir', args.base_dir,
                        '--out-dir',  args.processed_dir,
-                       '--workers',  str(args.workers)
+                    #    '--workers',  str(args.workers)
                        ])
 
     # 2. execute UMAP + FoF + outliers
@@ -65,13 +72,13 @@ def main(argv=None):
                     '--outdir', str(Path(args.fiber_plot)/'umap'),
                     ])
 
-    #4. plot spectra
-    plot_spectra_main([str(Path(args.processed_dir)/f'umap/umap_{args.night}_{args.tile}.npz'),
+    #4. plot spectra (Not really needed if using DESI inspector, but can be useful for debugging)
+    '''plot_spectra_main([str(Path(args.processed_dir)/f'umap/umap_{args.night}_{args.tile}.npz'),
                         str(Path(args.processed_dir)),
                         '--night', args.night,
                         '--tile', args.tile,
                         '--plot-path', str(Path(args.fiber_plot)/'spectra')
-                        ])
+                        ])'''
 
     # 5. plot fibers
     plot_fibers_main(str(Path(args.processed_dir)/f'umap/umap_{args.night}_{args.tile}.npz'),
@@ -81,6 +88,10 @@ def main(argv=None):
 
     #6. Update html
     # generate_html()
+    
+    #7. Generate DESI inspector URL
+    inspector_file = Path(args.out_log)/'inspector_urls.txt'
+    make_desi_url(args.out_txt, args.tile, args.night, str(inspector_file))
 
     print(f'{args.night},{args.tile},{time.time()-start:.1f}')
 

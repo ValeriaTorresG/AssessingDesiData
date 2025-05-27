@@ -1,6 +1,6 @@
-from concurrent.futures import ProcessPoolExecutor, as_completed  #maybe better than ThreadPoolExecutor in this case
+# from concurrent.futures import ProcessPoolExecutor, as_completed  #maybe better than ThreadPoolExecutor in this case
 from pathlib import Path
-import argparse, time
+import argparse
 from desiproc.save_data import SpectraPipeline
 
 def process_petal(petal: int, args) -> None:
@@ -14,14 +14,19 @@ def main(argv=None):
     parser.add_argument('--tile',     required=True)
     parser.add_argument('--base-dir', required=True)
     parser.add_argument('--out-dir',  required=True)
-    parser.add_argument('--workers',  type=int, default=10)
+    # parser.add_argument('--workers',  type=int, default=10)
     args = parser.parse_args(argv)
 
-    start = time.time()
-    with ProcessPoolExecutor(max_workers=args.workers) as exe:
-        futures = [exe.submit(process_petal, petal, args) for petal in range(10)]
-        for fut in as_completed(futures):
-            try:
-                fut.result()
-            except Exception as e:
-                continue
+    # with ProcessPoolExecutor(max_workers=args.workers) as exe:
+    #     futures = [exe.submit(process_petal, petal, args) for petal in range(10)]
+    #     for fut in as_completed(futures):
+    #         try:
+    #             fut.result()
+    #         except Exception as e:
+    #             continue
+            
+    for petal in range(10):
+        try:
+            process_petal(petal, args)
+        except Exception as e:
+            continue

@@ -62,7 +62,7 @@ def main(npz:str, h5_dir:str, night:str, tile:str, output:str):
     plt.ylabel('Fiber Y [mm]', fontsize=12)
     plt.axis('equal')
     plt.tight_layout()
-    plt.savefig(f'{output}/fibers_{night}_{tile}', dpi=360)
+    plt.savefig(f'{output}/fibers_{night}_{tile}', dpi=200)
 
 
 if __name__ == '__main__':

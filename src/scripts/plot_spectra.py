@@ -2,8 +2,8 @@ import os
 import argparse
 from collections import defaultdict
 
-import numpy as np
 import h5py
+import numpy as np
 from astropy.convolution import Gaussian1DKernel, convolve
 import matplotlib.pyplot as plt
 plt.style.use('./data/plots/desi.mplstyle')
