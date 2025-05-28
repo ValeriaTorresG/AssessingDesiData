@@ -16,7 +16,7 @@ Key features include:
 
 ### On NERSC
 
-SLURM to submit jobs: below is an example batch script (see ```/jobs/nersc_array.sh```):
+SLURM to submit jobs: below is an example batch script (see `/jobs/nersc_array.sh`):
 
 ```bash
 #!/bin/bash
@@ -47,7 +47,7 @@ srun python /global/homes/v/vtorresg/AssessingDesiData/src/scripts/run_pipeline.
 ```
 
 ### Local
-Uses local DESI Data Release 1 (DR1) files under ```/data/desi_data/{night}``` 
+Uses local DESI Data Release 1 (DR1) files under `/data/desi_data/{night}` 
 
 ```bash
 ./jobs/run.sh \
@@ -60,54 +60,40 @@ Uses local DESI Data Release 1 (DR1) files under ```/data/desi_data/{night}```
   --min_dist 1.0 \
   --n_components 2 \
   --link-length 0.45 \
-  --min-cluster-size 5 \
-  --workers 8
+  --min-cluster-size 5
 ```
 
-- ```--tile``` : DESI tile ID (e.g. 10256)
+- `--tile` : DESI tile ID (e.g. 10256)
 
-- ```--night``` : Observation date (e.g. 20211110)
+- `--night` : Observation date (e.g. 20211110)
 
-- ```--base-dir``` : Root folder containing DR1 data (/data/desi_data)
+- `--base-dir` : Root folder containing data (/data/desi_data)
 
-- ```--processed-dir``` : Folder where processed HDF5 and plots are saved (/data/processed)
+- `--processed-dir` : Folder where processed HDF5 and plots are saved (/data/processed)
 
-- ```--band``` : Bands to process (b, r, z, or combined brz)
+- `--band` : Bands to process (b, r, z, or combined brz)
 
-- ```--n_neighbors``` : Number of neighbors for UMAP (default: 45)
+- `--n_neighbors` : Number of neighbors for UMAP (default: 45)
 
-- ```--min_dist``` : UMAP minimum distance parameter (default: 1.0)
+- `--min_dist` : UMAP minimum distance parameter (default: 1.0)
 
-- ```--n_components``` : Dimensionality of UMAP embedding (2 or 3)
+- `--n_components` : Dimensionality of UMAP embedding (2 or 3)
 
-- ```--link-length``` : Radius for Friends-of-Friends clustering (default: 0.45)
+- `--link-length` : Radius for Friends-of-Friends clustering (default: 0.45)
 
-- ```--min-cluster-size``` : Minimum cluster size before flagging as outlier (default: 5)
-
-- ```--workers``` : Number of parallel workers (e.g. CPU cores)
+- `--min-cluster-size` : Minimum cluster size before flagging as outlier (default: 5)
 
 
+## Summary
 
-## Procedure
+- **Data loading & filtering**  
+  Recursively scan for `coadd-<tile>-<night>.fits`, load wavelength and flux arrays, and apply masks to remove bad fibers/targets.
 
-- **Directory traversal**: Recursively scan `data/desi_data` to locate all `coadd-<tile>-<night>.fits` files organized by tile and night.  
+- **Matrix preparation**  
+  Extract per-band flux & wavelength arrays, pad to a common length, then stack into a 2D flux matrix with associated metadata.
 
-- **File reading**: For each FITS file, use `desispec.io.read_spectra` (or `astropy.io.fits`) to load wavelength and flux arrays for bands **b**, **r**, and **z**.  
+- **Dimensionality reduction & clustering**  
+  Use UMAP to embed the combined flux matrix into 2D/3D, build a radius-neighbors graph, apply FoF clustering, and flag small clusters as outliers.
 
-- **Data filtering**: Apply fiber-status and target-flag masks to remove bad fibers or non-science targets before further processing.  
-
-- **Flux & wavelength extraction**: Extract and store per-object flux arrays (`flux[b/r/z]`) alongside their corresponding wavelength grids (`wave[b/r/z]`).  
-
-- **Padding alignment**: Zero-pad or truncate each band’s flux/wavelength arrays so that all spectra share a common length, enabling matrix stacking.  
-
-- **Matrix construction**: Stack padded flux arrays into a 2D matrix of shape `(n_objects, n_wavelengths_total)` and similarly assemble metadata arrays (tile IDs, object IDs, target types).  
-
-- **HDF5 export**: Write the combined flux matrix, wavelength grid, and metadata into a single HDF5 file (`desi_spectra.h5`) with named datasets for efficient I/O.  
-
-- **Normalization (not used!)**: Load the HDF5 file, optionally normalize each spectrum (e.g., by its median flux) to mitigate brightness differences before dimensionality reduction.  
-
-- **UMAP embedding**: Use `umap.UMAP` to project the high-dimensional flux matrix into 2D or 3D, capturing spectral similarity in a low-dimensional space.  
-
-- **FoF clustering & outlier detection**: Build a radius-neighbors graph on the UMAP embedding, apply `scipy.sparse.csgraph.connected_components` (Friends-of-Friends) to label clusters, and flag small clusters or singletons as outliers.  
-
-- **Visualization**: Generate and save plots—UMAP scatter colored by object type, example spectra overlays, and tile-specific summary figures—into the `plots/` directory for inspection.  
+- **Export & visualization**  
+  Write the flux matrix, wavelength grid, and metadata to a single HDF5 file, and save UMAP scatter plots, spectral overlays, and tile-specific summaries in `plots/`.
