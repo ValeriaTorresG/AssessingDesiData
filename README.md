@@ -1,12 +1,6 @@
 # Assessing the quality of DESI Spectroscopic Survey
 
-Key features include:
 
-- [x]  Load the combined dataset from the HDF5 file.
-- [x]  Perform any necessary preprocessing (e.g. padding if a brz grid is used).
-- [x]  Apply a U-MAP algorithm to reduce the high-dimensional spectral data to 2D for visualization. 
-- [x]  Identify clusters or groupings of spectra using FoF.
-- [x]  Plot the results of the UMAP projection, each point represents an object’s spectrum in the low-dimensional space. Points are color-coded by object category (e.g., gal, qso, std).
 ## Outliers identified
 
  - Some outliers found are displayed [here](https://valeriatorresg.github.io/AssessingDesiData/).
