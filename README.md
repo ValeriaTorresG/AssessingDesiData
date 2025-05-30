@@ -10,7 +10,7 @@
 
 ### On NERSC
 
-SLURM to submit jobs: below is an example batch script (see `/jobs/nersc_array.sh`):
+SLURM to submit jobs: below is an example batch script (see `/jobs/run_jobs.sbatch`):
 
 ```bash
 #!/bin/bash
