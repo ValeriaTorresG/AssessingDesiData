@@ -1,6 +1,6 @@
 import os
 
-def make_desi_url(txt_dir:str, tile:str, night:str, out_log:str):
+def make_url_tile(txt_dir:str, tile:str, night:str, out_log:str):
     txt_name = f'{night}_{tile}.txt'
     txt_path = os.path.join(txt_dir, txt_name)
     if not os.path.isfile(txt_path):
@@ -19,5 +19,5 @@ def make_desi_url(txt_dir:str, tile:str, night:str, out_log:str):
     fiber_str = ','.join(str(f) for f in sorted(fibers))
     url = f'https://inspector.desi.lbl.gov/loa/spectra/tiles/{tile}/{fiber_str}'
     
-    with open(out_log, 'a', encoding='utf-8') as f:
+    with open(out_log, 'w', encoding='utf-8') as f:
         f.write(f'{url}\n')

@@ -16,7 +16,7 @@ from scripts.plot_umap import main as plot_umap_main
 from scripts.plot_spectra import main as plot_spectra_main
 from scripts.plot_fibers import main as plot_fibers_main
 from scripts.generate_html import generate_html
-from desiproc.gen_url import make_desi_url
+from desiproc.gen_url_tile import make_url_tile
 
 def main(argv=None):
     parser = argparse.ArgumentParser()
@@ -35,7 +35,6 @@ def main(argv=None):
     parser.add_argument('--link-length',      type=float, default=0.25)
     parser.add_argument('--min-cluster-size', type=int,   default=5)
     parser.add_argument('--out_log',         default='/pscratch/sd/v/vtorresg/umap_analysis/data')
-    # parser.add_argument('--workers',          type=int,   default=10)
     args = parser.parse_args(argv)
 
     start = time.time()
@@ -46,7 +45,6 @@ def main(argv=None):
                        '--tile',     args.tile,
                        '--base-dir', args.base_dir,
                        '--out-dir',  args.processed_dir,
-                    #    '--workers',  str(args.workers)
                        ])
 
     # 2. execute UMAP + FoF + outliers
@@ -87,11 +85,11 @@ def main(argv=None):
                       str(Path(args.fiber_plot)/'fibers/'))
 
     #6. Update html
-    # generate_html()
+    '''generate_html()'''
     
     #7. Generate DESI inspector URL
-    inspector_file = Path(args.out_log)/'inspector_urls.txt'
-    make_desi_url(args.out_txt, args.tile, args.night, str(inspector_file))
+    inspector_tiles = Path(args.out_log)/'inspector_urls.txt'
+    make_url_tile(args.out_txt, args.tile, args.night, str(inspector_tiles))
 
     print(f'{args.night},{args.tile},{time.time()-start:.1f}')
 
