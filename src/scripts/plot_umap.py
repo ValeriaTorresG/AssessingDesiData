@@ -5,7 +5,7 @@ from pathlib import Path
 import argparse, os
 
 import matplotlib.pyplot as plt
-plt.style.use('./data/plots/desi.mplstyle')
+# plt.style.use('./data/plots/desi.mplstyle')
 plt.rcParams['font.size'] = 14
 
 def load_data(npz_path):

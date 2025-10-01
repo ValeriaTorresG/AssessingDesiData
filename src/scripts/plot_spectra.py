@@ -6,7 +6,7 @@ import h5py
 import numpy as np
 from astropy.convolution import Gaussian1DKernel, convolve
 import matplotlib.pyplot as plt
-plt.style.use('./data/plots/desi.mplstyle')
+# plt.style.use('./data/plots/desi.mplstyle')
 
 
 def plot_outlier_spectra(npz_file, out_dir, night, tile, plot_path=None):

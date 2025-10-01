@@ -3,7 +3,7 @@ import argparse
 import numpy as np
 import h5py
 import matplotlib.pyplot as plt
-plt.style.use('./data/plots/desi.mplstyle')
+# plt.style.use('./data/plots/desi.mplstyle')
 
 
 def main(npz:str, h5_dir:str, night:str, tile:str, output:str):
