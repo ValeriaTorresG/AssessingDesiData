@@ -29,7 +29,7 @@ LOGDIR=/pscratch/sd/v/vtorresg/umap_analysis/data/logs
 mkdir -p "$LOGDIR"
 
 TILE=$(ls "$BASE_DIR" | sort | sed -n "${SLURM_ARRAY_TASK_ID}p")
-NIGHT=$(ls "$BASE_DIR/$TILE" | head -n1)
+NIGHT=$(ls "$BASE_DIR/$TILE" | sort | tail -n1)
 
 OUTFILE=${LOGDIR}/${TILE}.out
 ERRFILE=${LOGDIR}/${TILE}.err
@@ -46,7 +46,7 @@ Uses local DESI Data Release 1 (DR1) files under `/data/desi_data/{night}`
 ```bash
 ./jobs/run.sh \
   --tile {tile_id} \
-  --night {night} \
+  --night latest \
   --base-dir /data/desi_data \
   --processed-dir /data/processed \
   --band brz \
@@ -60,6 +60,7 @@ Uses local DESI Data Release 1 (DR1) files under `/data/desi_data/{night}`
 - `--tile` : DESI tile ID (e.g. 10256)
 
 - `--night` : Observation date (e.g. 20211110)
+  Use `latest` or omit it to select the newest night directory for the tile. If an older available night is provided, the pipeline still uses the newest one and prints the selected date.
 
 - `--base-dir` : Root folder containing data (/data/desi_data)
 
@@ -90,4 +91,4 @@ Uses local DESI Data Release 1 (DR1) files under `/data/desi_data/{night}`
   Use UMAP to embed the combined flux matrix into 2D/3D, build a radius-neighbors graph, apply FoF clustering, and flag small clusters as outliers.
 
 - **Export & visualization**  
-  Write the flux matrix, wavelength grid, and metadata to a single HDF5 file, and save UMAP scatter plots, spectral overlays, and tile-specific summaries in `plots/`.
+  Write the flux matrix, wavelength grid, and metadata to a single HDF5 file, and save UMAP scatter plots, spectral overlays, and tile-specific summaries in `plots/`. Outlier text files use `TARGETID,TILEID,FIBER,NIGHT`.

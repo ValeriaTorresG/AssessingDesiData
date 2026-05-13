@@ -55,7 +55,8 @@ class SpectraPipeline:
         self.fn_out = str(parent / f'{self.night}-{self.tileid}-{self.petal}{ext}')
 
     def _filter_fibers(self, fmap: np.recarray):
-        mask = (fmap['COADD_FIBERSTATUS'] == 0) & (fmap['TARGETID'] > 0)
+        objtype = np.char.strip(fmap['OBJTYPE'].astype(str))
+        mask = (fmap['COADD_FIBERSTATUS'] == 0) & (objtype == 'TGT')
         self.idx = np.nonzero(mask)[0]
         self.ids = fmap['TARGETID'][self.idx]
         self.fibers = fmap['FIBER'][self.idx]

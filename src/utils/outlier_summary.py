@@ -9,7 +9,7 @@ from multiprocessing import Pool, cpu_count
 from desitarget.targetmask import desi_mask, scnd_mask
 import warnings
 from astropy.units import UnitsWarning
-warnings.simplefilter("ignore", UnitsWarning)
+warnings.simplefilter('ignore', UnitsWarning)
 
 
 try:
@@ -55,7 +55,7 @@ def decode_all_masks(row):
         if v is not None and v != 0:
             for n in sv3_desi_mask.names():
                 if (v & sv3_desi_mask[n]) != 0:
-                    out.append(f"SV3:{n}")
+                    out.append(f'SV3:{n}')
 
     # SV2
     if sv2_desi_mask is not None:
@@ -63,7 +63,7 @@ def decode_all_masks(row):
         if v is not None and v != 0:
             for n in sv2_desi_mask.names():
                 if (v & sv2_desi_mask[n]) != 0:
-                    out.append(f"SV2:{n}")
+                    out.append(f'SV2:{n}')
 
     # SV1
     if sv1_desi_mask is not None:
@@ -71,7 +71,7 @@ def decode_all_masks(row):
         if v is not None and v != 0:
             for n in sv1_desi_mask.names():
                 if (v & sv1_desi_mask[n]) != 0:
-                    out.append(f"SV1:{n}")
+                    out.append(f'SV1:{n}')
 
     # SV0
     if sv0_desi_mask is not None:
@@ -79,21 +79,21 @@ def decode_all_masks(row):
         if v is not None and v != 0:
             for n in sv0_desi_mask.names():
                 if (v & sv0_desi_mask[n]) != 0:
-                    out.append(f"SV0:{n}")
+                    out.append(f'SV0:{n}')
 
     # MAIN
     v = filled_int(row, 'DESI_TARGET')
     if v is not None and v != 0:
         for n in desi_mask.names():
             if (v & desi_mask[n]) != 0:
-                out.append(f"MAIN:{n}")
+                out.append(f'MAIN:{n}')
 
     # Secondary
     v = filled_int(row, 'SCND_TARGET')
     if v is not None and v != 0:
         for n in scnd_mask.names():
             if (v & scnd_mask[n]) != 0:
-                out.append(f"SCND:{n}")
+                out.append(f'SCND:{n}')
 
     return out
 
@@ -188,7 +188,7 @@ def find_row_in_coadds(tile_dir, night, targetid, coadd_cache, coadd_index_cache
     for r in range(10):
         key = (tile, night, r)
         if key not in coadd_cache:
-            coadd_path = tile_dir / night / f"coadd-{r}-{tile}-thru{night}.fits"
+            coadd_path = tile_dir / night / f'coadd-{r}-{tile}-thru{night}.fits'
             if not coadd_path.exists():
                 coadd_cache[key] = None
                 continue
@@ -224,7 +224,7 @@ def read_redrock_for(tile_dir, night, tile, r_found, targetid, redrock_cache, re
 
     key = (tile, night, r_found)
     if key not in redrock_cache:
-        redr_path = tile_dir / night / f"redrock-{r_found}-{tile}-thru{night}.fits"
+        redr_path = tile_dir / night / f'redrock-{r_found}-{tile}-thru{night}.fits'
         if not redr_path.exists():
             redrock_cache[key] = None
             return None, None
@@ -267,7 +267,8 @@ def iter_txt_rows(txt_path):
         except Exception:
             continue
         tile = parts[1]
-        yield target, tile
+        night = parts[3] if len(parts) > 3 and parts[3] else None
+        yield target, tile, night
 
 
 def process_txt_file(txt_path, base, cols, night_policy, emit_rows=True):
@@ -284,34 +285,33 @@ def process_txt_file(txt_path, base, cols, night_policy, emit_rows=True):
         if emit_rows:
             print('\t'.join(str(row_data.get(k)) for k in cols))
 
-    for target, tile in iter_txt_rows(txt_path):
+    for target, tile, row_night in iter_txt_rows(txt_path):
         tile_dir = base / tile
         if not tile_dir.exists():
-            out = {
-                'TARGETID': target,
-                'TILE': tile,
-                'NIGHT': None,
-                'SPECTYPE': None,
-                'SUBTYPES': [],
-                'CATEGORY': None,
-                'ZWARN': None,
-                'R': None,
-            }
+            out = {'TARGETID': target,
+                   'TILE': tile,
+                   'NIGHT': None,
+                   'SPECTYPE': None,
+                   'SUBTYPES': [],
+                   'CATEGORY': None,
+                   'ZWARN': None,
+                   'R': None}
             record(out)
             continue
 
-        night = choose_night(tile_dir, night_policy)
+        if row_night and (tile_dir / row_night).is_dir():
+            night = row_night
+        else:
+            night = choose_night(tile_dir, night_policy)
         if night is None:
-            out = {
-                'TARGETID': target,
-                'TILE': tile,
-                'NIGHT': None,
-                'SPECTYPE': None,
-                'SUBTYPES': [],
-                'CATEGORY': None,
-                'ZWARN': None,
-                'R': None,
-            }
+            out = {'TARGETID': target,
+                   'TILE': tile,
+                   'NIGHT': None,
+                   'SPECTYPE': None,
+                   'SUBTYPES': [],
+                   'CATEGORY': None,
+                   'ZWARN': None,
+                   'R': None}
             record(out)
             continue
 
@@ -346,7 +346,7 @@ def process_and_write(args):
     txt_path = Path(txt_file)
     base_path = Path(base)
     output_path = Path(output_dir)
-    csv_path = output_path / f"{txt_path.stem}.csv"
+    csv_path = output_path / f'{txt_path.stem}.csv'
     if not needs_processing(csv_path):
         return txt_path.name, str(csv_path), None
     df = process_txt_file(txt_path, base_path, list(cols), night_policy, emit_rows=False)
@@ -366,7 +366,7 @@ def main():
 
     base = Path(args.base)
     if not base.exists():
-        raise FileNotFoundError(f"Does not exist: {base}")
+        raise FileNotFoundError(f'Does not exist: {base}')
 
     cols = [c.strip().upper() for c in args.print_cols.split(',') if c.strip()]
 
@@ -374,7 +374,7 @@ def main():
     if txt_path.is_dir():
         txt_files = sorted(p for p in txt_path.glob('*.txt') if p.is_file())
         if not txt_files:
-            raise FileNotFoundError(f"No .txt files found in {txt_path}")
+            raise FileNotFoundError(f'No .txt files found in {txt_path}')
 
         output_dir = Path(args.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -383,7 +383,7 @@ def main():
         requested = max(1, cpu_count() // 2)
         procs = min(total_files, min(requested, 32))
 
-        print(f"---- Processing {total_files} files from {txt_path} using {procs} processes-----")
+        print(f'---- Processing {total_files} files from {txt_path} using {procs} processes-----')
         jobs = [(str(txt_file), str(base), tuple(cols), args.night, str(output_dir))
                 for txt_file in txt_files]
         completed = 0
@@ -392,9 +392,9 @@ def main():
             for name, output_file, nrows in pool.imap_unordered(process_and_write, jobs, chunksize=chunks):
                 completed += 1
                 if nrows is None:
-                    print(f" {completed}/{total_files} -> {name} -> {output_file} (skipped: existing and readable)", flush=True)
+                    print(f' {completed}/{total_files} -> {name} -> {output_file} (skipped: existing and readable)', flush=True)
                 else:
-                    print(f" {completed}/{total_files} -> {name} -> {output_file} ({nrows} rows)", flush=True)
+                    print(f' {completed}/{total_files} -> {name} -> {output_file} ({nrows} rows)', flush=True)
     else:
         output_path = Path(args.output)
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -403,7 +403,7 @@ def main():
             df = process_txt_file(txt_path, base, cols, args.night, emit_rows=True)
             df.to_csv(output_path, index=False)
         else:
-            print(f"Output already exists and is readable; skipping processing: {output_path}")
+            print(f'Output already exists and is readable; skipping processing: {output_path}')
 
 
 if __name__ == '__main__':

@@ -13,7 +13,7 @@ BASE_DIR=/global/cfs/cdirs/desi/spectro/redux/jura/tiles/cumulative
 LOGDIR=/pscratch/sd/v/vtorresg/umap_analysis/data/logs
 
 TILE=$(ls "$BASE_DIR" | sort | sed -n "${SLURM_ARRAY_TASK_ID}p")
-NIGHT=$(ls "$BASE_DIR/$TILE" | head -n1)
+NIGHT=$(ls "$BASE_DIR/$TILE" | sort | tail -n1)
 
 OUTFILE=${LOGDIR}/${TILE}.out
 ERRFILE=${LOGDIR}/${TILE}.err

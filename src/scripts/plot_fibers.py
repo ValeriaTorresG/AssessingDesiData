@@ -32,7 +32,7 @@ def main(npz:str, h5_dir:str, night:str, tile:str, output:str):
         idx_tile = np.where((petals == petal_id) & outlier_mask)[0]
         if idx_tile.size > 0:
             out_ids = ids[idx_tile]
-            local_pos = np.nonzero(np.in1d(tid_all, out_ids))[0]
+            local_pos = np.nonzero(np.isin(tid_all, out_ids))[0]
             ax.scatter(x_all[local_pos], y_all[local_pos],
                        s=5, c='black', edgecolor='black',
                        linewidth=0.1, zorder=10, label='Outliers')

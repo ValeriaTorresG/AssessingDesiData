@@ -35,7 +35,7 @@ def plot_outlier_spectra(npz_file, out_dir, night, tile, plot_path=None):
 
         with h5py.File(h5_fn, 'r') as f:
             all_ids = f['metadata/target_id'][:].astype(int)
-            idxs = np.nonzero(np.in1d(all_ids, tgt_list))[0]
+            idxs = np.nonzero(np.isin(all_ids, tgt_list))[0]
 
             waves, fluxes, smooth = {}, {}, {}
             for band in ('B','R','Z'):
