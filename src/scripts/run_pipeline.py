@@ -10,7 +10,7 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 import sys
 proj_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
 sys.path.insert(0, os.path.join(proj_root, 'src'))
-from scripts.process_tile import main as process_tile_main
+from scripts.process_tile import main as process_tile_main, resolve_night
 from scripts.run_model import main as run_model_main
 from scripts.plot_umap import main as plot_umap_main
 from scripts.plot_spectra import main as plot_spectra_main
@@ -22,7 +22,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--tile',             required=True, help='Tile ID')
-    parser.add_argument('--night',            required=True, help='Night of observation')
+    parser.add_argument('--night',            default='latest', help='Night selector. The newest available night directory is used.')
     parser.add_argument('--base-dir',         default='/global/cfs/cdirs/desi/spectro/redux/jura/tiles/cumulative/')
     parser.add_argument('--processed-dir',    dest='processed_dir', default='/pscratch/sd/v/vtorresg/umap_analysis/data/sep_bands/z/processed/')
     parser.add_argument('--band',             default='z', choices=['b','r','z','brz'])
@@ -39,12 +39,14 @@ def main(argv=None):
 
     start = time.time()
     Path(args.processed_dir).mkdir(parents=True, exist_ok=True)
+    args.night = resolve_night(args.base_dir, args.tile, args.night)
 
     # 1. process all petals from tile
     process_tile_main(['--night',    args.night,
                        '--tile',     args.tile,
                        '--base-dir', args.base_dir,
                        '--out-dir',  args.processed_dir,
+                       '--night-resolved',
                        ])
 
     # 2. execute UMAP + FoF + outliers

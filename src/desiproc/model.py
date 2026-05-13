@@ -80,13 +80,13 @@ class SpectraAnalyzer:
 
     def save_outliers_info(self, outfile:str, mask:np.ndarray=None,):
         """
-        Save outlier info (target_id, tile_id, fiber) to a text file.
+        Save outlier info (target_id, tile_id, fiber, night) to a text file.
         """
         # os.makedirs(outfile, exist_ok=True)
         out_ids = self.ids[mask]
         out_fibers = self.fibers[mask]
         with open(f'{outfile}/{self.night}_{self.tile}.txt', 'w') as f:
-            f.write('TARGETID,TILEID,FIBER\n')
+            f.write('TARGETID,TILEID,FIBER,NIGHT\n')
             for tid, fib in zip(out_ids, out_fibers):
-                f.write(f'{tid},{self.tile},{fib}\n')
+                f.write(f'{tid},{self.tile},{fib},{self.night}\n')
         return outfile

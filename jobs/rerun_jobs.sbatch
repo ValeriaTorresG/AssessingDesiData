@@ -17,7 +17,7 @@ FAILED_LIST=/global/homes/v/vtorresg/AssessingDesiData/jobs/failed_jobs.txt
 
 RAW=$(sed -n "${SLURM_ARRAY_TASK_ID}p" "$FAILED_LIST")
 TILE=${RAW%.err}
-NIGHT=$(ls "${BASE_DIR}/${TILE}" | head -n1)
+NIGHT=$(ls "${BASE_DIR}/${TILE}" | sort | tail -n1)
 
 OUTFILE=${LOGDIR}/${TILE}.out
 ERRFILE=${LOGDIR}/${TILE}.err
