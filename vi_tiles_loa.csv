@@ -1,0 +1,7 @@
+program,tileid,n_outliers,n_bad_vi,zwarn_neq_0
+dark,1406,10,5,1
+dark,3473,30,23,2
+dark,3833,39,35,10
+bright,25300,68,28,1
+bright,22175,101,45,1
+bright,22097,143,125,1
