@@ -21,9 +21,21 @@ FIG12_MAX_TIME = 200.0
 FIG12_XLIM = (0.0, 225.0)
 FIG12_BINS = 20
 UMAP_CATEGORY_COLORS = ['#E69F00', '#0072B2', '#009E73']
+PAPER_ORANGE = '#E69F00'
+PAPER_BLUE = '#0072B2'
 PROGRAMS = ({'label': 'Dark', 'color': '#0072B2', 'slug': 'dark'},
             {'label': 'Bright', 'color': '#E69F00', 'slug': 'bright'},
             {'label': 'Backup', 'color': '#009E73', 'slug': 'backup'})
+STEEL_PROGRAMS = ({'label': 'tertiary51', 'color': '#0072B2', 'slug': 'tertiary51'},
+                  {'label': 'tertiary52', 'color': '#E69F00', 'slug': 'tertiary52'},
+                  {'label': 'tertiary55', 'color': '#009E73', 'slug': 'tertiary55'})
+AGGREGATION_UNIT = 'tiles'
+SCIENCE_FIBER_LABEL = 'Science fibers'
+PROCESSING_COUNT_LABEL = r'$N_{\rm out}$'
+UMAP_POINT_SIZE = 11
+UMAP_POINT_LINEWIDTH = 0.2
+UMAP_GROUP_POINT_SIZE = 13
+UMAP_GROUP_POINT_LINEWIDTH = 0.2
 
 
 def parse_args():
@@ -31,6 +43,7 @@ def parse_args():
     parser.add_argument('--figure-data', type=Path, default=DEFAULT_FIGURE_DATA)
     parser.add_argument('--outdir', type=Path, default=DEFAULT_OUTDIR)
     parser.add_argument('--dpi', type=int, default=360)
+    parser.add_argument('--profile', choices=('default', 'steel'), default='default')
     return parser.parse_args()
 
 
@@ -147,13 +160,13 @@ def plot_fig1(figure_data, outdir, dpi):
 
     fig, ax = plt.subplots(figsize=(5, 5))
     ax.scatter(df['MEAN_FIBER_X'], df['MEAN_FIBER_Y'],
-               s=5, color=program_color('Dark'),
+               s=5, color=PAPER_BLUE,
                linewidths=0, label='All fibers',
                zorder=5)
     ax.scatter(science['MEAN_FIBER_X'], science['MEAN_FIBER_Y'],
-               s=5, color=program_color('Bright'),
+               s=5, color=PAPER_ORANGE,
                linewidths=0, alpha=0.9,
-               label='Science fibers', zorder=10)
+               label=SCIENCE_FIBER_LABEL, zorder=10)
 
     x_min, x_max = df['MEAN_FIBER_X'].min(), df['MEAN_FIBER_X'].max()
     y_min, y_max = df['MEAN_FIBER_Y'].min(), df['MEAN_FIBER_Y'].max()
@@ -188,9 +201,11 @@ def plot_fig2(figure_data, outdir, dpi):
         subset = df[df['CATEGORY'].astype(str).eq(category)]
         alpha = 0.8 if category == 'GALAXY' else 1.0
         ax.scatter(subset['UMAP_1'], subset['UMAP_2'],
-                   s=11, linewidths=0.2, edgecolor='black',
+                   s=UMAP_POINT_SIZE, linewidths=UMAP_POINT_LINEWIDTH,
+                   edgecolor='black' if UMAP_POINT_LINEWIDTH else 'none',
                    color=color, label=category,
-                   zorder=2, alpha=alpha)
+                   zorder=2, alpha=min(alpha, 0.72) if UMAP_POINT_SIZE < 5 else alpha,
+                   rasterized=UMAP_POINT_SIZE < 5)
 
     ax.legend(loc='upper left', frameon=True, fontsize=9, markerscale=1.5)
     fig.tight_layout()
@@ -209,7 +224,7 @@ def plot_fig3(figure_data, outdir, dpi):
     ax.set_xlabel('UMAP 1')
     ax.set_ylabel('UMAP 2')
 
-    base_colors = [program_color('Dark'),
+    base_colors = [PAPER_BLUE,
                    'orange',
                    'green',
                    'red',
@@ -229,10 +244,13 @@ def plot_fig3(figure_data, outdir, dpi):
             color = next(color_cycle)
             zorder = 2
         ax.scatter(subset['UMAP_1'], subset['UMAP_2'],
-                   s=13, linewidths=0.2, edgecolor='black',
+                   s=UMAP_GROUP_POINT_SIZE,
+                   linewidths=UMAP_GROUP_POINT_LINEWIDTH,
+                   edgecolor='black' if UMAP_GROUP_POINT_LINEWIDTH else 'none',
                    color=color,
                    label=group, zorder=zorder,
-                   alpha=1.0)
+                   alpha=0.65 if UMAP_GROUP_POINT_SIZE < 5 else 1.0,
+                   rasterized=UMAP_GROUP_POINT_SIZE < 5)
 
     ax.legend(loc='upper left', frameon=True, fontsize=9, markerscale=1.5)
     fig.tight_layout()
@@ -276,7 +294,8 @@ def plot_fig5(figure_data, outdir, dpi):
                     edgecolor='black', linewidth=HIST_EDGE_LINEWIDTH, label=program['label'])
         style_axis(ax, log_y=x.size > 0)
     make_program_figure(plotter, panels, outdir / 'fig5.png', dpi=dpi,
-                        xlabel=OUTLIER_FRACTION_LABEL, ylabel=r'$N_{\rm tiles}$')
+                        xlabel=OUTLIER_FRACTION_LABEL,
+                        ylabel=rf'$N_{{\rm {AGGREGATION_UNIT}}}$')
 
 
 def plot_fig6(figure_data, outdir, dpi):
@@ -360,7 +379,7 @@ def plot_fig10(figure_data, outdir, dpi):
 
     fig, ax = plt.subplots(figsize=(5, 4))
     ax.bar(df['LABEL'], df['COUNTS'],
-           color=program_color('Dark'), edgecolor='black',
+           color=PAPER_BLUE, edgecolor='black',
            width=0.35, linewidth=0.45)
     ax.set_yscale('log')
     ax.set_xlim(-0.45, len(df) - 0.55)
@@ -399,17 +418,22 @@ def plot_fig12(figure_data, outdir, dpi):
     style_axis(ax)
     ax.hist(df['TIME'].to_numpy(),
             weights=weights, bins=FIG12_BINS,
-            range=(0.0, FIG12_MAX_TIME), color=program_color('Dark'),
+            range=(0.0, FIG12_MAX_TIME), color=PAPER_BLUE,
             edgecolor='black', linewidth=0.7, zorder=3)
-    ax.set_xlabel(r'$t_{\rm tile} \,[s]$', fontsize=12, labelpad=4)
-    ax.set_ylabel(r'$N_{\rm out}$', fontsize=13, labelpad=4)
+    ax.set_xlabel(rf'$t_{{\rm {AGGREGATION_UNIT.rstrip("s")}}} \,[s]$',
+                  fontsize=12, labelpad=4)
+    ax.set_ylabel(PROCESSING_COUNT_LABEL, fontsize=13, labelpad=4)
     ax.set_xlim(*FIG12_XLIM)
 
     xticks = ax.get_xticks()
     tick_stride = max(1, len(xticks) // 10)
     xticks = xticks[::tick_stride]
     ax.set_xticks(xticks)
-    ax.set_xticklabels([f'${int(tick)}$' for tick in xticks])
+    if FIG12_XLIM[1] <= 2.0:
+        tick_labels = [f'${tick:.1f}$' for tick in xticks]
+    else:
+        tick_labels = [f'${int(tick)}$' for tick in xticks]
+    ax.set_xticklabels(tick_labels)
     ax.set_yscale('log')
 
     fig.tight_layout()
@@ -423,7 +447,7 @@ def plot_fig13(figure_data, outdir, dpi):
 
     fig, ax = plt.subplots(figsize=(5, 4))
     ax.scatter(df['N_SPECTRA'], df['N_OUTLIERS'],
-               s=3, c=program_color('Dark'),
+               s=3, c=PAPER_BLUE,
                edgecolor='black', linewidth=0.05)
     style_axis(ax)
     ax.set_xlabel(r'$N_{\rm spec}$', fontsize=13, labelpad=4)
@@ -435,7 +459,24 @@ def plot_fig13(figure_data, outdir, dpi):
 
 
 def main():
+    global PROGRAMS, AGGREGATION_UNIT, SCIENCE_FIBER_LABEL
+    global UMAP_POINT_SIZE, UMAP_POINT_LINEWIDTH
+    global UMAP_GROUP_POINT_SIZE, UMAP_GROUP_POINT_LINEWIDTH
+    global FIG12_MAX_TIME, FIG12_XLIM, FIG12_BINS
+    global PROCESSING_COUNT_LABEL
     args = parse_args()
+    if args.profile == 'steel':
+        PROGRAMS = STEEL_PROGRAMS
+        AGGREGATION_UNIT = 'healpix'
+        SCIENCE_FIBER_LABEL = 'STEEL fibers'
+        UMAP_POINT_SIZE = 2
+        UMAP_POINT_LINEWIDTH = 0
+        UMAP_GROUP_POINT_SIZE = 2
+        UMAP_GROUP_POINT_LINEWIDTH = 0
+        FIG12_MAX_TIME = 0.7
+        FIG12_XLIM = (0.0, 0.7)
+        FIG12_BINS = 14
+        PROCESSING_COUNT_LABEL = r'$N_{\rm healpix}$'
     args.outdir.mkdir(parents=True, exist_ok=True)
 
     plot_fig1(args.figure_data, args.outdir, args.dpi)

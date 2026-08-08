@@ -1,5 +1,5 @@
 import argparse, csv, json, os, re, shutil, sys, time
-from collections import OrderedDict
+from itertools import cycle
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -17,9 +17,17 @@ from scipy.spatial import cKDTree
 DEFAULT_ROOTS = (Path('/global/cfs/cdirs/desi/spectro/redux/tertiary51/healpix/special/other'),
                  Path('/global/cfs/cdirs/desi/spectro/redux/tertiary52/healpix/special/other'),
                  Path('/global/cfs/cdirs/desi/spectro/redux/tertiary55/healpix/special/other'))
-DEFAULT_OUTROOT = Path('/pscratch/sd/v/vtorresg/umap_analysis/data/tertiary_rapids')
-DEFAULT_OUTPUT_NAME = 'tertiary_all_healpix_rapids'
+DEFAULT_OUTROOT = Path('/pscratch/sd/v/vtorresg/umap_analysis/data/steel_rapids_global')
+DEFAULT_OUTPUT_NAME = 'steel_all_spectra_rapids'
 COADD_RE = re.compile(r'^coadd-(?P<survey>[^-]+)-(?P<program>[^-]+)-(?P<healpix>\d+)\.fits$')
+
+# DESI_TARGET bit 62 is SCND_ANY; the input roots restrict it to STEEL campaigns.
+SCND_ANY_DESI_TARGET_BIT = 62
+SCND_ANY_DESI_TARGET_MASK = np.uint64(1) << np.uint64(SCND_ANY_DESI_TARGET_BIT)
+ALLOWED_COADD_FIBERSTATUS_BITS = (3, 20)
+ALLOWED_COADD_FIBERSTATUS_MASK = np.uint64(sum(1 << bit for bit in ALLOWED_COADD_FIBERSTATUS_BITS))
+UMAP_CATEGORY_COLORS = ('#E69F00', '#0072B2', '#009E73')
+PLOT_DPI = 360
 
 
 @dataclass(frozen=True)
@@ -30,6 +38,7 @@ class CoaddScan:
     program: str
     healpix: int
     n_total: int
+    n_steel_targets: int
     n_selected: int
 
 
@@ -52,11 +61,9 @@ def parse_args(argv=None):
     parser.add_argument('--link-length', type=float, default=0.25)
     parser.add_argument('--min-cluster-size', type=int, default=5)
     parser.add_argument('--max-files', type=int, default=0)
-    parser.add_argument('--keep-bad-fibers', action='store_true')
-    parser.add_argument('--include-non-targets', action='store_true')
     parser.add_argument('--no-fill-nonfinite', action='store_true')
     parser.add_argument('--no-plots', action='store_true')
-    parser.add_argument('--no-healpix-outputs', action='store_true')
+    parser.add_argument('--no-tex', action='store_true')
     parser.add_argument('--overwrite', action='store_true')
     parser.add_argument('--dry-run', action='store_true')
     return parser.parse_args(argv)
@@ -92,10 +99,6 @@ def parse_coadd_path(path):
     return info
 
 
-def output_stem(scan):
-    return '{}_{}_{}_{}'.format(scan.redux, scan.survey, scan.program, scan.healpix)
-
-
 def ensure_runtime_env(outroot):
     cache_dirs = {'NUMBA_CACHE_DIR': outroot / 'numba_cache',
                   'MPLCONFIGDIR': outroot / 'mpl_config',
@@ -122,14 +125,30 @@ def get_column(table, name, n, default):
     return np.full(n, default)
 
 
-def selection_mask(fibermap, keep_bad_fibers=False, include_non_targets=False):
-    n = len(fibermap)
-    mask = np.ones(n, dtype=bool)
-    if not keep_bad_fibers and 'COADD_FIBERSTATUS' in fibermap.columns.names:
-        mask &= np.asarray(fibermap['COADD_FIBERSTATUS']) == 0
-    if not include_non_targets and 'OBJTYPE' in fibermap.columns.names:
-        mask &= decode_strings(fibermap['OBJTYPE']) == 'TGT'
-    return mask
+def steel_selection_masks(fibermap):
+    """
+    Select STEEL targets with no disallowed coadd fiber-status bits.
+
+    Within the STEEL-only input campaigns, targets are identified by the
+    SCND_ANY DESI_TARGET bit (62). COADD_FIBERSTATUS bits 3 and 20 are
+    explicitly tolerated; any other set bit rejects the spectrum. OBJTYPE is
+    deliberately not part of this selection.
+    """
+    required = ('DESI_TARGET', 'COADD_FIBERSTATUS')
+    missing = [name for name in required if name not in fibermap.columns.names]
+    if missing:
+        raise ValueError('FIBERMAP is missing required selection columns: {}'.format(
+            ', '.join(missing)))
+
+    desi_target = np.asarray(fibermap['DESI_TARGET']).astype(np.uint64, copy=False)
+    fiberstatus = np.asarray(fibermap['COADD_FIBERSTATUS']).astype(np.uint64, copy=False)
+    is_steel = (desi_target & SCND_ANY_DESI_TARGET_MASK) != 0
+    has_only_allowed_status = (fiberstatus & ~ALLOWED_COADD_FIBERSTATUS_MASK) == 0
+    return is_steel, has_only_allowed_status, is_steel & has_only_allowed_status
+
+
+def selection_mask(fibermap):
+    return steel_selection_masks(fibermap)[2]
 
 
 def read_wave_grid(hdul, bands):
@@ -211,15 +230,14 @@ def scan_coadds(files, args):
                 validate_wave_grid(wave, current_wave, path)
 
             fibermap = hdul['FIBERMAP'].data
-            mask = selection_mask(fibermap,
-                                  keep_bad_fibers=args.keep_bad_fibers,
-                                  include_non_targets=args.include_non_targets)
+            is_steel, _, mask = steel_selection_masks(fibermap)
             scans.append(CoaddScan(path=path,
                                    redux=info['redux'],
                                    survey=info['survey'],
                                    program=info['program'],
                                    healpix=info['healpix'],
                                    n_total=len(fibermap),
+                                   n_steel_targets=int(is_steel.sum()),
                                    n_selected=int(mask.sum())))
 
     if wave is None:
@@ -229,6 +247,7 @@ def scan_coadds(files, args):
 
 def allocate_metadata(n):
     return {'target_ids': np.empty(n, dtype=np.int64),
+            'desi_target': np.empty(n, dtype=np.uint64),
             'z': np.empty(n, dtype=np.float64),
             'zerr': np.empty(n, dtype=np.float64),
             'zwarn': np.empty(n, dtype=np.int64),
@@ -255,20 +274,17 @@ def fill_global_matrix(scans, wave, args):
 
     flux = np.empty((total_selected, wave.size), dtype=np.float32)
     meta = allocate_metadata(total_selected)
-    rows_by_stem = OrderedDict()
     summary_rows = []
     offset = 0
     bands = selected_bands(args.band)
 
     for scan in scans:
         start_time = time.time()
-        stem = output_stem(scan)
         status = 'ok'
         error = ''
 
         try:
             if scan.n_selected == 0:
-                rows_by_stem[stem] = np.array([], dtype=np.int64)
                 status = 'empty'
             else:
                 redrock_path = scan.path.with_name(scan.path.name.replace('coadd-', 'redrock-', 1))
@@ -277,9 +293,7 @@ def fill_global_matrix(scans, wave, args):
                     exp_fibermap = coadd['EXP_FIBERMAP'].data if 'EXP_FIBERMAP' in coadd else None
                     redshifts = rr_hdul['REDSHIFTS'].data
 
-                    mask = selection_mask(fibermap,
-                                          keep_bad_fibers=args.keep_bad_fibers,
-                                          include_non_targets=args.include_non_targets)
+                    mask = selection_mask(fibermap)
                     rows = np.nonzero(mask)[0]
                     if rows.size != scan.n_selected:
                         raise ValueError('Selected row count changed for {}: scan={}, load={}'.format(
@@ -303,6 +317,8 @@ def fill_global_matrix(scans, wave, args):
                     n_fibermap = len(fibermap)
 
                     meta['target_ids'][dest] = target_ids
+                    meta['desi_target'][dest] = np.asarray(fibermap['DESI_TARGET'])[rows].astype(
+                        np.uint64, copy=False)
                     meta['z'][dest] = np.asarray(get_column(redshifts, 'Z', n_redrock, np.nan)[rr_rows], dtype=np.float64)
                     meta['zerr'][dest] = np.asarray(get_column(redshifts, 'ZERR', n_redrock, np.nan)[rr_rows], dtype=np.float64)
                     meta['zwarn'][dest] = np.asarray(get_column(redshifts, 'ZWARN', n_redrock, -1)[rr_rows], dtype=np.int64)
@@ -321,24 +337,23 @@ def fill_global_matrix(scans, wave, args):
                     meta['source_file'][dest] = str(scan.path)
                     meta['source_row'][dest] = rows
 
-                    row_indices = np.arange(offset, offset + rows.size, dtype=np.int64)
-                    rows_by_stem[stem] = row_indices
                     offset += rows.size
         except Exception as exc:
             status = 'failed'
             error = repr(exc)
 
-        summary_rows.append({'stem': stem,
-                             'input': str(scan.path),
+        summary_rows.append({'input': str(scan.path),
                              'status': status,
                              'n_total': scan.n_total,
+                             'n_steel_targets': scan.n_steel_targets,
+                             'n_rejected_fiberstatus': scan.n_steel_targets - scan.n_selected,
                              'n_selected': scan.n_selected if status != 'failed' else '',
                              'load_seconds': time.time() - start_time,
                              'error': error,})
         if status == 'failed':
             raise RuntimeError('Failed loading {}: {}'.format(scan.path, error))
 
-        print('loaded {stem} selected={n_selected} rows={offset}/{total}'.format(stem=stem,
+        print('loaded {path} selected={n_selected} rows={offset}/{total}'.format(path=scan.path.name,
                                                                                  n_selected=scan.n_selected,
                                                                                  offset=offset,
                                                                                  total=total_selected,),
@@ -346,7 +361,7 @@ def fill_global_matrix(scans, wave, args):
 
     if offset != total_selected:
         raise RuntimeError('Internal row count mismatch: filled {}, expected {}'.format(offset, total_selected))
-    return flux, meta, rows_by_stem, summary_rows
+    return flux, meta, summary_rows
 
 
 def parse_device_ids(value):
@@ -432,42 +447,36 @@ def compute_fof(embedding, args):
     return labels.astype(np.int32, copy=False), outlier_mask, int(n_clusters)
 
 
-def subset_indices(indices, n):
-    if indices is None:
-        return np.arange(n, dtype=np.int64)
-    return np.asarray(indices, dtype=np.int64)
-
-
-def write_npz(path, wave, embedding, labels, outlier_mask, meta, indices=None):
-    idx = subset_indices(indices, embedding.shape[0])
+def write_npz(path, wave, embedding, labels, outlier_mask, meta):
     path.parent.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(path,
                         wave=wave,
-                        embedding=embedding[idx],
-                        labels=labels[idx],
-                        outlier_mask=outlier_mask[idx],
-                        categories=meta['spectype'][idx],
-                        ids=meta['target_ids'][idx],
-                        healpix=meta['healpix'][idx],
-                        redux=meta['redux'][idx],
-                        survey=meta['survey'][idx],
-                        program=meta['program'][idx],
-                        z=meta['z'][idx],
-                        zerr=meta['zerr'][idx],
-                        zwarn=meta['zwarn'][idx],
-                        tileid=meta['tileid'][idx],
-                        night=meta['night'][idx],
-                        petal_loc=meta['petal_loc'][idx],
-                        fiber=meta['fiber'][idx],
-                        source_file=meta['source_file'][idx],
-                        source_row=meta['source_row'][idx],)
+                        embedding=embedding,
+                        labels=labels,
+                        outlier_mask=outlier_mask,
+                        categories=meta['spectype'],
+                        ids=meta['target_ids'],
+                        desi_target=meta['desi_target'],
+                        healpix=meta['healpix'],
+                        redux=meta['redux'],
+                        survey=meta['survey'],
+                        program=meta['program'],
+                        z=meta['z'],
+                        zerr=meta['zerr'],
+                        zwarn=meta['zwarn'],
+                        tileid=meta['tileid'],
+                        night=meta['night'],
+                        petal_loc=meta['petal_loc'],
+                        fiber=meta['fiber'],
+                        source_file=meta['source_file'],
+                        source_row=meta['source_row'],)
 
 
-def write_outlier_csv(path, embedding, labels, outlier_mask, meta, indices=None):
-    idx = subset_indices(indices, embedding.shape[0])
-    selected = idx[outlier_mask[idx]]
+def write_outlier_csv(path, embedding, labels, outlier_mask, meta):
+    selected = np.flatnonzero(outlier_mask)
     ndim = embedding.shape[1]
     fieldnames = ['TARGETID',
+                  'DESI_TARGET',
                   'REDUX',
                   'SURVEY',
                   'PROGRAM',
@@ -491,6 +500,7 @@ def write_outlier_csv(path, embedding, labels, outlier_mask, meta, indices=None)
         writer.writeheader()
         for i in selected:
             row = {'TARGETID': int(meta['target_ids'][i]),
+                   'DESI_TARGET': int(meta['desi_target'][i]),
                    'REDUX': text_value(meta['redux'][i]),
                    'SURVEY': text_value(meta['survey'][i]),
                    'PROGRAM': text_value(meta['program'][i]),
@@ -513,137 +523,92 @@ def write_outlier_csv(path, embedding, labels, outlier_mask, meta, indices=None)
     return int(selected.size)
 
 
-def write_umap_plot(path, title, embedding, outlier_mask, categories, n_clusters):
+def write_umap_plot(path, embedding, outlier_mask, categories, use_tex=True):
+    """Write the global UMAP using the publication-figure visual style."""
     path.parent.mkdir(parents=True, exist_ok=True)
     cats = sorted(set(text_value(cat) for cat in categories))
-    cmap = plt.get_cmap('tab10')
-    point_size = 5 if embedding.shape[0] < 10000 else 2
-
-    fig, ax = plt.subplots(figsize=(9, 8))
     category_text = np.array([text_value(cat) for cat in categories])
-    for idx, cat in enumerate(cats):
-        mask = (category_text == cat) & (~outlier_mask)
-        if np.any(mask):
-            ax.scatter(embedding[mask, 0],
-                       embedding[mask, 1],
-                       s=point_size,
-                       alpha=0.55,
-                       color=cmap(idx % 10),
-                       label=cat,)
-    if np.any(outlier_mask):
-        ax.scatter(embedding[outlier_mask, 0],
-                   embedding[outlier_mask, 1],
-                   s=max(12, point_size * 4),
-                   marker='x',
-                   linewidths=0.9,
-                   color='black',
-                   label='Outliers',)
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.set_title('{}\n{} spectra, {} clusters, {} outliers'.format(
-            title, embedding.shape[0], n_clusters, int(outlier_mask.sum())))
-    ax.legend(markerscale=2, fontsize=9)
-    fig.tight_layout()
-    fig.savefig(path, dpi=200)
-    plt.close(fig)
 
+    def render(render_with_tex):
+        colors = cycle(UMAP_CATEGORY_COLORS)
+        rc_params = {'text.usetex': render_with_tex, 'font.family': 'serif'}
+        with plt.rc_context(rc_params):
+            fig, ax = plt.subplots(figsize=(6, 5))
+            try:
+                ax.grid(linewidth=0.3, zorder=-1)
+                ax.set_axisbelow(True)
+                ax.set_aspect('equal', adjustable='datalim')
+                ax.set_xlabel(r'$\mathrm{UMAP}\ 1$', labelpad=9, fontsize=13)
+                ax.set_ylabel(r'$\mathrm{UMAP}\ 2$', labelpad=9, fontsize=13)
 
-def write_healpix_summary(path, meta, outlier_mask):
-    grouped = OrderedDict()
-    for i in range(outlier_mask.size):
-        healpix = int(meta['healpix'][i])
-        if healpix not in grouped:
-            grouped[healpix] = {'total_objects': 0, 'outliers': 0}
-        grouped[healpix]['total_objects'] += 1
-        grouped[healpix]['outliers'] += int(outlier_mask[i])
+                for cat in cats:
+                    color = next(colors)
+                    mask = category_text == cat
+                    alpha = 0.65 if cat == 'GALAXY' else 0.8
+                    ax.scatter(embedding[mask, 0],
+                               embedding[mask, 1],
+                               s=3,
+                               linewidths=0,
+                               color=color,
+                               label=cat,
+                               zorder=2,
+                               alpha=alpha,
+                               rasterized=True,)
 
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open('w', newline='') as handle:
-        writer = csv.writer(handle, lineterminator='\n')
-        writer.writerow(['healpix', 'total_objects', 'outliers', 'percentage'])
-        for healpix in sorted(grouped):
-            total = grouped[healpix]['total_objects']
-            outliers = grouped[healpix]['outliers']
-            percentage = 100.0 * outliers / total if total else 0.0
-            writer.writerow([healpix, total, outliers, '{:.6f}'.format(percentage)])
+                if np.any(outlier_mask):
+                    ax.scatter(embedding[outlier_mask, 0],
+                               embedding[outlier_mask, 1],
+                               s=10,
+                               color='black',
+                               marker='x',
+                               linewidths=0.7,
+                               label='Outliers',
+                               zorder=3,)
 
+                ax.legend(loc='upper left', frameon=True, fontsize=9, markerscale=1.5)
+                fig.tight_layout()
+                fig.savefig(path, dpi=PLOT_DPI, bbox_inches='tight')
+            finally:
+                plt.close(fig)
 
-def write_healpix_summary_by_release(path, meta, outlier_mask):
-    grouped = OrderedDict()
-    for i in range(outlier_mask.size):
-        key = (text_value(meta['redux'][i]),
-               text_value(meta['survey'][i]),
-               text_value(meta['program'][i]),
-               int(meta['healpix'][i]),)
-        if key not in grouped:
-            grouped[key] = {'total_objects': 0, 'outliers': 0}
-        grouped[key]['total_objects'] += 1
-        grouped[key]['outliers'] += int(outlier_mask[i])
-
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open('w', newline='') as handle:
-        writer = csv.writer(handle, lineterminator='\n')
-        writer.writerow(['redux', 'survey', 'program', 'healpix', 'total_objects', 'outliers', 'percentage'])
-        for key in sorted(grouped):
-            total = grouped[key]['total_objects']
-            outliers = grouped[key]['outliers']
-            percentage = 100.0 * outliers / total if total else 0.0
-            writer.writerow([*key, total, outliers, '{:.6f}'.format(percentage)])
+    latex_available = shutil.which('latex') is not None and shutil.which('dvipng') is not None
+    render_with_tex = use_tex and latex_available
+    if use_tex and not latex_available:
+        print('warning: latex/dvipng not found; plotting with Matplotlib mathtext',
+              file=sys.stderr, flush=True)
+    try:
+        render(render_with_tex)
+    except (RuntimeError, FileNotFoundError) as exc:
+        if not render_with_tex:
+            raise
+        print('warning: LaTeX rendering failed ({}); retrying with Matplotlib mathtext'.format(exc),
+              file=sys.stderr, flush=True)
+        render(False)
 
 
 def write_input_summary(path, rows):
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open('w', newline='') as handle:
         writer = csv.DictWriter(handle,
-                                fieldnames=['input', 'status', 'n_total', 'n_selected', 'load_seconds', 'error'],
+                                fieldnames=['input',
+                                            'status',
+                                            'n_total',
+                                            'n_steel_targets',
+                                            'n_rejected_fiberstatus',
+                                            'n_selected',
+                                            'load_seconds',
+                                            'error',],
                                 lineterminator='\n',)
         writer.writeheader()
         for row in rows:
             writer.writerow({'input': row.get('input', ''),
                              'status': row.get('status', ''),
                              'n_total': row.get('n_total', ''),
+                             'n_steel_targets': row.get('n_steel_targets', ''),
+                             'n_rejected_fiberstatus': row.get('n_rejected_fiberstatus', ''),
                              'n_selected': row.get('n_selected', ''),
                              'load_seconds': '{:.1f}'.format(row.get('load_seconds', 0.0)),
                              'error': row.get('error', ''),})
-
-
-def write_processing_summary(path, rows_by_stem, scans, embedding, labels, outlier_mask, outroot, no_plots, write_healpix_outputs):
-    scan_by_stem = {output_stem(scan): scan for scan in scans}
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open('w', newline='') as handle:
-        writer = csv.writer(handle, lineterminator='\n')
-        writer.writerow(['input',
-                         'status',
-                         'n_total',
-                         'n_selected',
-                         'n_clusters',
-                         'n_outliers',
-                         'seconds',
-                         'npz',
-                         'csv',
-                         'plot',
-                         'error',])
-        for stem, idx in rows_by_stem.items():
-            scan = scan_by_stem[stem]
-            unique_labels = np.unique(labels[idx]).size if idx.size else 0
-            n_outliers = int(outlier_mask[idx].sum()) if idx.size else 0
-            writer.writerow([str(scan.path),
-                             'ok' if idx.size else 'empty',
-                             scan.n_total,
-                             idx.size,
-                             unique_labels,
-                             n_outliers,
-                             '',
-                             str(outroot / 'processed' / 'umap' / '{}.npz'.format(stem))
-                             if write_healpix_outputs
-                             else '',
-                             str(outroot / 'text_files' / '{}_outliers.csv'.format(stem))
-                             if write_healpix_outputs
-                             else '',
-                             ''
-                             if no_plots or not write_healpix_outputs
-                             else str(outroot / 'plots' / 'umap' / '{}.png'.format(stem)),
-                             ''])
 
 
 def write_global_summary(path, args, files, embedding, n_clusters, outlier_mask, seconds, outputs):
@@ -691,11 +656,15 @@ def write_run_config(path, args, files, scans, seconds):
               'knn_n_clusters': args.knn_n_clusters,
               'knn_overlap_factor': args.knn_overlap_factor,
               'device_ids': args.device_ids,
-              'keep_bad_fibers': args.keep_bad_fibers,
-              'include_non_targets': args.include_non_targets,
+              'selection': {'desi_target_bit': SCND_ANY_DESI_TARGET_BIT,
+                            'allowed_coadd_fiberstatus_bits': list(ALLOWED_COADD_FIBERSTATUS_BITS),
+                            'objtype_filter': None,},
+              'plot_usetex': not args.no_tex,
               'fill_nonfinite': not args.no_fill_nonfinite,
               'n_files': len(files),
               'n_total': int(sum(scan.n_total for scan in scans)),
+              'n_steel_targets': int(sum(scan.n_steel_targets for scan in scans)),
+              'n_rejected_fiberstatus': int(sum(scan.n_steel_targets - scan.n_selected for scan in scans)),
               'n_selected': int(sum(scan.n_selected for scan in scans)),
               'seconds': seconds,}
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -713,12 +682,11 @@ def check_outputs(outputs, args):
             ', '.join(str(path) for path in existing)))
 
 
-def write_outputs(wave, embedding, labels, outlier_mask, meta, rows_by_stem, scans, args, total_seconds):
+def write_outputs(wave, embedding, labels, outlier_mask, meta, scans, args, total_seconds):
     outroot = args.outroot
     global_npz = outroot / 'processed' / 'umap' / '{}.npz'.format(args.output_name)
     global_csv = outroot / 'text_files' / '{}_outliers.csv'.format(args.output_name)
     global_plot = outroot / 'plots' / 'umap' / '{}.png'.format(args.output_name)
-    all_outliers = outroot / 'sum' / 'all_outliers.csv'
     outputs = {'npz': global_npz,
                'csv': global_csv,
                'plot': global_plot,
@@ -726,47 +694,15 @@ def write_outputs(wave, embedding, labels, outlier_mask, meta, rows_by_stem, sca
 
     write_npz(global_npz, wave, embedding, labels, outlier_mask, meta)
     n_global_outliers = write_outlier_csv(global_csv, embedding, labels, outlier_mask, meta)
-    all_outliers.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(global_csv, all_outliers)
 
     if not args.no_plots and args.n_components >= 2:
         write_umap_plot(global_plot,
-                        'tertiary coadds: all healpix, global RAPIDS UMAP',
                         embedding,
                         outlier_mask,
                         meta['spectype'],
-                        int(np.unique(labels).size),)
+                        use_tex=not args.no_tex,)
 
-    if not args.no_healpix_outputs:
-        scan_by_stem = {output_stem(scan): scan for scan in scans}
-        for stem, idx in rows_by_stem.items():
-            if idx.size == 0:
-                continue
-            scan = scan_by_stem[stem]
-            npz_path = outroot / 'processed' / 'umap' / '{}.npz'.format(stem)
-            csv_path = outroot / 'text_files' / '{}_outliers.csv'.format(stem)
-            plot_path = outroot / 'plots' / 'umap' / '{}.png'.format(stem)
-            write_npz(npz_path, wave, embedding, labels, outlier_mask, meta, idx)
-            write_outlier_csv(csv_path, embedding, labels, outlier_mask, meta, idx)
-            if not args.no_plots and args.n_components >= 2:
-                title = '{} {}/{} healpix {} (global RAPIDS UMAP)'.format(
-                    scan.redux, scan.survey, scan.program, scan.healpix)
-                write_umap_plot( plot_path, title, embedding[idx], outlier_mask[idx], meta['spectype'][idx], int(np.unique(labels[idx]).size))
-
-    write_healpix_summary(outroot / 'sum' / 'healpix_outlier_summary.csv', meta, outlier_mask)
-    write_healpix_summary_by_release(outroot / 'sum' / 'healpix_outlier_summary_by_release.csv',
-                                     meta,
-                                     outlier_mask)
-    write_processing_summary(outroot / 'logs' / 'healpix_coadd_umap_summary.csv',
-                             rows_by_stem,
-                             scans,
-                             embedding,
-                             labels,
-                             outlier_mask,
-                             outroot,
-                             args.no_plots,
-                             not args.no_healpix_outputs,)
-    write_global_summary(outroot / 'logs' / 'tertiary_rapids_global_summary.csv',
+    write_global_summary(outroot / 'logs' / 'steel_rapids_global_summary.csv',
                          args,
                          [scan.path for scan in scans],
                          embedding,
@@ -777,6 +713,8 @@ def write_outputs(wave, embedding, labels, outlier_mask, meta, rows_by_stem, sca
 
     print('wrote global npz: {}'.format(global_npz), flush=True)
     print('wrote global outlier csv: {} ({} rows)'.format(global_csv, n_global_outliers), flush=True)
+    if not args.no_plots and args.n_components >= 2:
+        print('wrote global plot: {}'.format(global_plot), flush=True)
     print('wrote output root: {}'.format(outroot), flush=True)
 
 
@@ -792,7 +730,7 @@ def main(argv=None):
 
     global_outputs = {'npz': args.outroot / 'processed' / 'umap' / '{}.npz'.format(args.output_name),
                       'csv': args.outroot / 'text_files' / '{}_outliers.csv'.format(args.output_name),
-                      'summary': args.outroot / 'logs' / 'tertiary_rapids_global_summary.csv',}
+                      'summary': args.outroot / 'logs' / 'steel_rapids_global_summary.csv',}
     if not args.no_plots and args.n_components >= 2:
         global_outputs['plot'] = args.outroot / 'plots' / 'umap' / '{}.png'.format(args.output_name)
     check_outputs(global_outputs, args)
@@ -800,28 +738,35 @@ def main(argv=None):
     start = time.time()
     scans, wave = scan_coadds(files, args)
     n_total = sum(scan.n_total for scan in scans)
+    n_steel_targets = sum(scan.n_steel_targets for scan in scans)
     n_selected = sum(scan.n_selected for scan in scans)
 
     print('Found {} coadd files'.format(len(files)), flush=True)
     print('Total spectra before filters: {}'.format(n_total), flush=True)
-    print('Selected spectra: {}'.format(n_selected), flush=True)
+    print('Spectra with DESI_TARGET bit {}: {}'.format(
+        SCND_ANY_DESI_TARGET_BIT, n_steel_targets), flush=True)
+    print('Rejected STEEL spectra by COADD_FIBERSTATUS: {}'.format(
+        n_steel_targets - n_selected), flush=True)
+    print('Selected STEEL spectra: {}'.format(n_selected), flush=True)
     print('Flux matrix shape will be ({}, {}) float32'.format(n_selected, wave.size), flush=True)
     print('Output root: {}'.format(args.outroot), flush=True)
 
     if args.dry_run:
-        write_input_summary(args.outroot / 'logs' / 'tertiary_rapids_input_summary.csv',
+        write_input_summary(args.outroot / 'logs' / 'steel_rapids_input_summary.csv',
                             [{'input': str(scan.path),
                               'status': 'dry-run',
                               'n_total': scan.n_total,
+                              'n_steel_targets': scan.n_steel_targets,
+                              'n_rejected_fiberstatus': scan.n_steel_targets - scan.n_selected,
                               'n_selected': scan.n_selected,
                               'load_seconds': 0.0,
                               'error': ''}
                              for scan in scans],)
-        write_run_config(args.outroot / 'logs' / 'tertiary_rapids_run_config.json', args, files, scans, time.time() - start)
+        write_run_config(args.outroot / 'logs' / 'steel_rapids_run_config.json', args, files, scans, time.time() - start)
         return 0
 
-    flux, meta, rows_by_stem, input_summary_rows = fill_global_matrix(scans, wave, args)
-    write_input_summary(args.outroot / 'logs' / 'tertiary_rapids_input_summary.csv', input_summary_rows)
+    flux, meta, input_summary_rows = fill_global_matrix(scans, wave, args)
+    write_input_summary(args.outroot / 'logs' / 'steel_rapids_input_summary.csv', input_summary_rows)
 
     print('Running RAPIDS UMAP on full matrix...', flush=True)
     umap_start = time.time()
@@ -837,8 +782,8 @@ def main(argv=None):
         time.time() - fof_start, n_clusters, int(outlier_mask.sum())), flush=True)
 
     total_seconds = time.time() - start
-    write_outputs(wave, embedding, labels, outlier_mask, meta, rows_by_stem, scans, args, total_seconds)
-    write_run_config(args.outroot / 'logs' / 'tertiary_rapids_run_config.json', args, files, scans, total_seconds)
+    write_outputs(wave, embedding, labels, outlier_mask, meta, scans, args, total_seconds)
+    write_run_config(args.outroot / 'logs' / 'steel_rapids_run_config.json', args, files, scans, total_seconds)
     print('Finished without failures in {:.1f} seconds'.format(total_seconds), flush=True)
     return 0
 
